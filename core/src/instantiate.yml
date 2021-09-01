@@ -1,0 +1,59 @@
+instantiate:
+- types:
+    - [double]
+  functions:
+    - weno5_FD_1D
+    - weno5_FD_1D_novec
+    - weno5_FD_1D_novec_optimized
+    - weno5_FD_1D_all_novec
+    - weno5_FD_1D_all_novec_optimized
+    - weno5_FD_1D_all_novec_optimized_two
+
+- types:
+    - [double]
+  functions:
+    - weno5_FD_2D_novec
+    - weno5_FD_2D_all_novec
+    - test_two_dimensions_memory_layout
+    - weno5_FD_2D_all_novec_reverse_iteration
+
+- types:
+    - [double]
+  functions:
+    - mesh_to_particles_1D_mp4
+    - wrap_particles_around_1D_domain
+    - mesh_to_particles_2D_linear_kernel
+    - mesh_to_particles_2D_mp4
+    - mesh_to_particles_2D_yang_smooth_three_point_kernel
+    - mesh_to_particles_2D_mp6
+    - wrap_particles_around_2D_domain
+    - mesh_to_particles_2D_unbounded_linear_kernel
+    - mesh_to_particles_2D_unbounded_yang_smooth_three_point_kernel
+    - mesh_to_particles_2D_unbounded_mp4
+    - mesh_to_particles_2D_unbounded_mp6
+
+- types:
+    - [double]
+  functions:
+    - particles_to_mesh_1D_mp4
+    - particles_to_mesh_2D_linear_kernel
+    - particles_to_mesh_2D_yang_smooth_three_point_kernel
+    - particles_to_mesh_2D_mp4
+    - particles_to_mesh_2D_mp6
+    - particles_to_mesh_2D_unbounded_linear_kernel
+    - particles_to_mesh_2D_unbounded_yang_smooth_three_point_kernel
+    - particles_to_mesh_2D_unbounded_mp4
+    - particles_to_mesh_2D_unbounded_mp6
+
+- types:
+    - [short, double]
+  functions:
+    - extrapolate_using_least_squares_till_first_order
+    - extrapolate_using_least_squares_till_second_order
+
+# Specializations for the reinitialization kernel
+- types:
+    - [double]
+  functions:
+    - reinitialize_level_set_using_hamilton_jacobi
+    - reinitialize_level_set_using_hamilton_jacobi_heap_memory

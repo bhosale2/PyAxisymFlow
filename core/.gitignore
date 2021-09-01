@@ -1,0 +1,18 @@
+# All shared library and object files files
+*.so
+*.o
+src/*.o
+src/*.so
+
+# Any temporary directory
+var/
+build/
+
+# Any bind cpp files, except for the ones force added
+*_bind.cpp
+src/*_bind.cpp
+
+# Also any mp4 and pycahce
+__pycache__
+*.mp4
+
