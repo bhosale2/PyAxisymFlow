@@ -24,38 +24,48 @@ from kernels.FDM_stokes_psi_solve import (
     stokes_psi_solve_LU,
 )
 
-# from kernels.poisson_solve_unb import pseudo_poisson_solve_unb
 from kernels.FDM_stokes_phi_solve import stokes_phi_init, stokes_phi_solve_LU
 from kernels.compute_velocity_from_phi import compute_velocity_from_phi_unb
 
 plotset()
 plt.figure(figsize=(5 / domain_AR, 5))
 # Parameters
-fotoTimer_limit = 0.1
 brink_lam = 1e4
 moll_zone = dx * 2 ** 0.5
+
+# torus geometry details
 r_core = 0.15
-# a_by_r_core = 0.34146341463414637
+# a_by_r_core = 0.34146341463414637 muscle ring value
 a_by_r_core = 0.4
 a = a_by_r_core * r_core
 a0 = a
-freq = 16
-freqTimer_limit = 1 / freq
-omega = 2 * np.pi * freq
-# d_AC_by_r_core = 0.11235582096628798
-d_AC_by_r_core = 0.1
-e = 0.1
-e_r_core = 1 * e * a_by_r_core
-U_0 = e * a * omega
-nu = omega * (d_AC_by_r_core * r_core) ** 2
-no_cycles = 75
-tEnd = no_cycles / freq
-part_rad = 0.015
-part_Z_cm = 0.5
+Z_cm = 0.3
+Z_cm_t = Z_cm
+R_cm = r_core
+Z_cm_end = 0.7
+
+# particle geometry details
+beta = 0.1
+part_rad = beta * r_core
+part_Z_cm = Z_cm
 part_R_cm = 0.0
-zeta = 100.0
-U_mean = 1 * U_0 / zeta
-print(U_mean)
+
+# d_AC_by_r_core = 0.11235582096628798  # muscle ring values
+zeta = 0
+U_mean = 0.05
+e = 0.1
+e_r_core = e * a_by_r_core
+# U_osc = e * a * omega
+U_osc = zeta * U_mean
+omega = U_osc / a / e
+freq = omega / 2 / np.pi
+Re_t = 0.05
+nu = U_mean * a / Re_t
+tEnd = (Z_cm_end - Z_cm) / U_mean
+if zeta == 0:
+    freqTimer_limit = 0.005 * tEnd
+else:
+    freqTimer_limit = 1 / freq
 
 # Build discrete domain
 z = np.linspace(0 + dx / 2, 1 - dx / 2, grid_size_z)
@@ -74,11 +84,7 @@ u_r_pen = 0 * Z
 avg_psi = 0 * Z
 avg_u_z = 0 * Z
 avg_u_r = 0 * Z
-Z_cm = 0.5
-Z_cm_t = Z_cm
-R_cm = r_core
 t = 0
-fotoTimer = 0.0
 it = 0
 freqTimer = 0.0
 
@@ -93,11 +99,7 @@ u_breath_divg = 0 * Z
 #  create char function
 phi0 = -np.sqrt((Z - Z_cm) ** 2 + (R - R_cm) ** 2) + a
 char_func = 0 * Z
-char_func0 = 0 * Z
-smooth_Heaviside(char_func0, phi0, moll_zone)
 smooth_Heaviside(char_func, phi0, moll_zone)
-d = np.ma.array(char_func, mask=char_func < 0.5)
-smooth_Heaviside(char_func0, phi0, moll_zone)
 
 part_phi = -np.sqrt((Z - Z_cm) ** 2 + (R - R_cm) ** 2) + part_rad
 part_char_func = 0 * Z
@@ -115,7 +117,6 @@ while t < tEnd:
 
     if freqTimer >= freqTimer_limit:
         freqTimer = 0.0
-        fotoTimer = 0.0
         plt.contourf(Z, R, avg_psi, levels=25, extend="both", cmap=lab_cmp)
         plt.colorbar()
         plt.contour(
@@ -145,18 +146,17 @@ while t < tEnd:
             ],
             colors="k",
         )
-        # plt.contourf(Z, R, d, cmap="Greys", zorder=2)
         plt.gca().set_aspect("equal")
         plt.savefig("snap_" + str("%0.4d" % (t * 100)) + ".png")
         plt.clf()
-        vtk_write(
-            "axisym_avg_" + str("%0.4d" % (t * 100)) + ".vti",
-            vtk_image_data,
-            temp_vtk_array,
-            writer,
-            ["avg_char_func", "avg_psi", "avg_u_z", "avg_u_r"],
-            [char_func0, avg_psi, avg_u_z, avg_u_r],
-        )
+        # vtk_write(
+        #     "axisym_avg_" + str("%0.4d" % (t * 100)) + ".vti",
+        #     vtk_image_data,
+        #     temp_vtk_array,
+        #     writer,
+        #     ["avg_char_func", "avg_psi", "avg_u_z", "avg_u_r"],
+        #     [char_func, avg_psi, avg_u_z, avg_u_r],
+        # )
         avg_psi[...] *= 0
         avg_u_z[...] *= 0
         avg_u_r[...] *= 0
@@ -197,7 +197,7 @@ while t < tEnd:
     ) / (2 * dx)
 
     # solve for potential function and get velocity
-    vel_divg[...] = U_0 * np.cos(omega * t) / R
+    vel_divg[...] = U_osc * np.cos(omega * t) / R
     vel_divg[...] += u_breath_divg
     stokes_phi_solve_LU(vel_phi, LU_decomp_phi, char_func * vel_divg)
     compute_velocity_from_phi_unb(u_z_divg, u_r_divg, vel_phi, dx)
@@ -212,10 +212,8 @@ while t < tEnd:
     )
     if freqTimer + dt > freqTimer_limit:
         dt = freqTimer_limit - freqTimer
-    if fotoTimer + dt > fotoTimer_limit:
-        dt = fotoTimer_limit - fotoTimer
-    if t + dt > tEnd:
-        dt = tEnd - t
+    # if t + dt > tEnd:
+    #     dt = tEnd - t
 
     # integrate averaged fields
     avg_psi[...] += psi * dt
@@ -239,7 +237,7 @@ while t < tEnd:
         dt,
         char_func,
         U_mean + u_z_breath,
-        U_0 * np.cos(omega * t) + u_r_breath,
+        U_osc * np.cos(omega * t) + u_r_breath,
         u_z,
         u_r,
         u_z_pen,
@@ -284,7 +282,6 @@ while t < tEnd:
 
     #  update time
     t += dt
-    fotoTimer += dt
     it += 1
     freqTimer = freqTimer + dt
     if it % 100 == 0:
