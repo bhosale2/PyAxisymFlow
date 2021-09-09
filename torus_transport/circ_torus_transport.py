@@ -27,6 +27,11 @@ from kernels.FDM_stokes_psi_solve import (
 from kernels.FDM_stokes_phi_solve import stokes_phi_init, stokes_phi_solve_LU
 from kernels.compute_velocity_from_phi import compute_velocity_from_phi_unb
 
+# numba settings
+import numba
+from set_sim_params import num_threads
+numba.set_num_threads(num_threads)
+
 plotset()
 plt.figure(figsize=(5 / domain_AR, 5))
 # Parameters

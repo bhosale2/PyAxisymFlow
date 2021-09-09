@@ -1,8 +1,8 @@
 from numba import njit
+from set_sim_params import fastmath_flag, parallel_flag
 
 
-# @njit(fastmath=True)
-@njit(fastmath=True, parallel=True)
+@njit(fastmath=fastmath_flag, parallel=parallel_flag)
 def compute_velocity_from_phi_unb(u_z, u_r, phi, dx):
     """
     computes velocity from the Stokes stream function

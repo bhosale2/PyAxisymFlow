@@ -1,8 +1,8 @@
 from numba import njit
+from set_sim_params import fastmath_flag, parallel_flag
 
 
-# @njit(fastmath=True)
-@njit(fastmath=True, parallel=True)
+@njit(fastmath=fastmath_flag, parallel=parallel_flag)
 def advect_CD2_ENO(
     eta, u_z, u_r, temp_gradient, total_flux, pos_flux, neg_flux, dt, dx
 ):

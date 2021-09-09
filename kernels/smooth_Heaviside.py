@@ -1,9 +1,9 @@
 import numpy as np
 from numba import njit
+from set_sim_params import fastmath_flag, parallel_flag
 
 
-# @njit(fastmath=True)
-@njit(fastmath=True, parallel=True)
+@njit(fastmath=fastmath_flag, parallel=parallel_flag)
 def smooth_Heaviside(H, phi, blend_w):
     """
     computes a smooth Heaviside function needed for smoothing

@@ -1,8 +1,8 @@
 from numba import njit, prange
+from set_sim_params import fastmath_flag, parallel_flag
 
 
-# @njit(fastmath=True)
-@njit(parallel=True, fastmath=True)
+@njit(fastmath=fastmath_flag, parallel=parallel_flag)
 def advect_vorticity_CD2(vorticity, flux, u_z, u_r, dt, dx):
     """
     central difference 2nd order advection, usually unstable but works with viscosity
@@ -15,7 +15,7 @@ def advect_vorticity_CD2(vorticity, flux, u_z, u_r, dt, dx):
     vorticity[...] = vorticity - flux
 
 
-@njit(parallel=True, fastmath=True)
+@njit(fastmath=fastmath_flag, parallel=parallel_flag)
 def advect_vorticity_CD2_numba(vorticity, u_z, u_r, dt, dx):
     r_grid_size = vorticity.shape[0]
     z_grid_size = vorticity.shape[1]

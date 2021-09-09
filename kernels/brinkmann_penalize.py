@@ -1,8 +1,8 @@
 from numba import njit
+from set_sim_params import fastmath_flag, parallel_flag
 
 
-# @njit(fastmath=True)
-@njit(fastmath=True, parallel=True)
+@njit(fastmath=fastmath_flag, parallel=parallel_flag)
 def brinkmann_penalize(lam, dt, char_func, U_z, U_r, grid_u_z, grid_u_r, penalized_u_z, penalized_u_r):
     """
     implicit Brinkmann penalization for velocity
