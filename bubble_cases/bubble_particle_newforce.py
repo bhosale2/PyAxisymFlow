@@ -24,8 +24,6 @@ from kernels.FDM_stokes_psi_solve import (
 )
 from kernels.diffusion_RK2_unb import diffusion_RK2_unb
 import core.particles_to_mesh as p2m
-from kernels.update_baroclinic_vorticity import update_baroclinic_vorticity
-from kernels.diffusion_RK2_unb import diffusion_RK2_unb_diffrho
 
 plotset()
 plt.figure(figsize=(5 / domain_AR, 5))
@@ -40,10 +38,10 @@ r0_bubble = 0.16
 r_part = 0.2 * r0_bubble
 nu = r_part ** 2 * omega / 3.0 / lambda_part
 rho_f = 1.0
-rho_s = 0.98 * rho_f
+rho_s = 1.0 * rho_f
 e = 0.05
 U_0 = e * r0_bubble * omega
-no_cycles = 150
+no_cycles = 125
 tEnd = no_cycles / freq
 
 # Build discrete domain
@@ -52,14 +50,13 @@ r = np.linspace(0 + dx / 2, domain_AR - dx / 2, grid_size_r)
 Z, R = np.meshgrid(z, r)
 
 # load initial conditions
-# bubble_Z_cm = 0.25
-# bubble_Z_cm = 0.3
 rp = 2.0
 bubble_Z_cm = 0.5 - rp * r0_bubble
 bubble_R_cm = 0.0
 bubble_phi = -np.sqrt((Z - bubble_Z_cm) ** 2 + (R - bubble_R_cm) ** 2) + r0_bubble
 bubble_char_func = 0 * Z
 smooth_Heaviside(bubble_char_func, bubble_phi, moll_zone)
+inside_bubble = bubble_char_func >= 0.5
 
 part_Z_cm = bubble_Z_cm + rp * r0_bubble
 part_R_cm = 0.0
@@ -114,7 +111,6 @@ M_proj = 0.0
 M_proj_old = 0.0
 F_pen = 0.0
 U_z_cm_part = 0.0
-U_z_cm_part_old = 0.0
 old_dt = min(
     0.9 * dx ** 2 / 4 / nu,
     LCFL / (np.amax(np.sqrt(u_r ** 2 + u_z ** 2)) + eps),
@@ -199,17 +195,8 @@ while t < tEnd:
     compute_velocity_from_psi_unb(u_z, u_r, psi, R, dx)
 
     # get bubble breathing mode
-    r_bubble = r0_bubble
-    # r_bubble = r0_bubble - e * r0_bubble * np.cos(omega * t)
-    bubble_phi[...] = (
-        -np.sqrt((Z - bubble_Z_cm) ** 2 + (R - bubble_R_cm) ** 2) + r_bubble
-    )
-    bubble_char_func *= 0
-    smooth_Heaviside(bubble_char_func, bubble_phi, moll_zone)
-    # inside_bubble[...] = bubble_phi >= 0.75 * r0_bubble
-    inside_bubble[...] = bubble_char_func >= 0.5
-    u_z_breath[...] = U_0 * (Z - bubble_Z_cm) * np.sin(omega * t) / r_bubble
-    u_r_breath[...] = U_0 * (R - bubble_R_cm) * np.sin(omega * t) / r_bubble
+    u_z_breath[...] = U_0 * (Z - bubble_Z_cm) * np.sin(omega * t) / r0_bubble
+    u_r_breath[...] = U_0 * (R - bubble_R_cm) * np.sin(omega * t) / r0_bubble
 
     # add potential flow (bubble)
     u_z[...] += inside_bubble * u_z_breath
@@ -219,7 +206,7 @@ while t < tEnd:
         * U_0
         * (Z - bubble_Z_cm)
         * np.sin(omega * t)
-        * r_bubble ** 2
+        * r0_bubble ** 2
         / ((Z - bubble_Z_cm) ** 2 + (R - bubble_R_cm) ** 2) ** 1.5
     )
     u_r[...] += (
@@ -227,7 +214,7 @@ while t < tEnd:
         * U_0
         * (R - bubble_R_cm)
         * np.sin(omega * t)
-        * r_bubble ** 2
+        * r0_bubble ** 2
         / ((Z - bubble_Z_cm) ** 2 + (R - bubble_R_cm) ** 2) ** 1.5
     )
 
@@ -251,9 +238,8 @@ while t < tEnd:
     old_dt = dt
 
     # update particle location and velocity
-    U_z_cm_part_old = U_z_cm_part
     U_z_cm_part += dt * (F_proj + F_pen) / part_mass
-    part_Z_cm += 0.5 * (U_z_cm_part + U_z_cm_part_old) * dt
+    part_Z_cm += U_z_cm_part * dt
 
     # set body velocity fields
     part_phi[...] = -np.sqrt((Z - part_Z_cm) ** 2 + (R - part_R_cm) ** 2) + r_part
@@ -274,33 +260,32 @@ while t < tEnd:
     # compute penalisation force
     F_pen = rho_f * brink_lam * np.sum(R * part_char_func * (u_z - U_z_cm_part))
 
-    # stretching term
-    # vortex_stretching(vorticity, u_r, R, dt)
-
     # FDM CD advection, usually unstable but works for low Re
-    flux = temp_vorticity
-    advect_vorticity_CD2(vorticity, flux, u_z, u_r, dt, dx)
     # flux = temp_vorticity
-    # advect_vorticity_maccormack(vorticity, mid_vorticity, flux, u_z, u_r, dt, dx)
+    # advect_vorticity_CD2(vorticity, flux, u_z, u_r, dt, dx)
 
-    # z_particles[grid_size_r:, :] += u_z * dt
-    # z_particles[:grid_size_r, :] += np.flip(u_z, axis=0) * dt
-    # r_particles[grid_size_r:, :] += u_r * dt
-    # r_particles[:grid_size_r, :] += -np.flip(u_r, axis=0) * dt
+    # particle advection
+    z_particles[grid_size_r:, :] += u_z * dt
+    z_particles[:grid_size_r, :] += np.flip(u_z, axis=0) * dt
+    r_particles[grid_size_r:, :] += u_r * dt
+    r_particles[:grid_size_r, :] += -np.flip(u_r, axis=0) * dt
 
     # # remesh
-    # vort_particles[grid_size_r:, :] = vorticity
-    # vort_particles[:grid_size_r, :] = -np.flip(vorticity, axis=0)
-    # vort_double[...] *= 0
-    # p2m.particles_to_mesh_2D_unbounded_mp4(
-    #     z_particles, r_particles, vort_particles, vort_double, dx, dx
-    # )
-    # z_particles[...] = Z_double
-    # r_particles[...] = R_double
-    # vorticity[...] = vort_double[grid_size_r:, :]
+    vort_particles[grid_size_r:, :] = vorticity
+    vort_particles[:grid_size_r, :] = -np.flip(vorticity, axis=0)
+    vort_double[...] *= 0
+    p2m.particles_to_mesh_2D_unbounded_mp4(
+        z_particles, r_particles, vort_particles, vort_double, dx, dx
+    )
+    z_particles[...] = Z_double
+    r_particles[...] = R_double
+    vorticity[...] = vort_double[grid_size_r:, :]
 
-    # correct conservative advection, cancels out with vortec stretching term
+    # correct conservative advection, cancels out with vortex stretching term
     # vorticity[...] -= vorticity * dt * u_r / R
+
+    # stretching term
+    # vortex_stretching(vorticity, u_r, R, dt)
 
     # diffuse vorticity
     diffusion_RK2_unb(vorticity, temp_vorticity, R, nu, dt, dx)
@@ -312,7 +297,6 @@ while t < tEnd:
     it += 1
     if it % 100 == 0:
         print(t, np.amax(vorticity), part_Z_cm)
-
 
 np.savetxt(
     "trajectory.csv",
