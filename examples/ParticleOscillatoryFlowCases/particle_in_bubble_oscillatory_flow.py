@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 import sys
 import os
 
-sys.path.append("../")
+sys.path.append("../../")
 from set_sim_params import grid_size_z, grid_size_r, dx, eps, LCFL, domain_AR
 from utils.plotset import plotset
 from utils.custom_cmap import lab_cmp
