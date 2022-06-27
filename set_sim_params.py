@@ -1,6 +1,6 @@
 import numpy
 
-grid_size_z = 800
+grid_size_z = 512
 domain_AR = 0.5
 dx = 1.0 / grid_size_z
 grid_size_r = int(domain_AR * grid_size_z)
