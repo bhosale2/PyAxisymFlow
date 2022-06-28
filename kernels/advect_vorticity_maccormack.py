@@ -1,7 +1,7 @@
 from numba import njit
 
 
-@njit(parallel=True)
+@njit(cache = True, parallel=True)
 def advect_vorticity_maccormack(vorticity, mid_vorticity, flux, u_z, u_r, dt, dx):
     """
     MacCormack scheme

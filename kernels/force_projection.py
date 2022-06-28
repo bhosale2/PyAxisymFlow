@@ -3,7 +3,7 @@ from numba import njit
 from set_sim_params import fastmath_flag, parallel_flag
 
 
-@njit(fastmath=fastmath_flag, parallel=parallel_flag)
+@njit(cache = True, fastmath=fastmath_flag, parallel=parallel_flag)
 def force_projection(rho_s, char_func, u_z, u_r, R):
     """
     computes projected momentum on floating bodies from the fluid

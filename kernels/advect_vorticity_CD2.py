@@ -2,7 +2,7 @@ from numba import njit, prange
 from set_sim_params import fastmath_flag, parallel_flag
 
 
-@njit(fastmath=fastmath_flag, parallel=parallel_flag)
+@njit(cache = True, fastmath=fastmath_flag, parallel=parallel_flag)
 def advect_vorticity_CD2(vorticity, flux, u_z, u_r, dt, dx):
     """
     central difference 2nd order advection, usually unstable but works with viscosity

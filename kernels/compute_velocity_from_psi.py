@@ -2,7 +2,7 @@ from numba import njit
 from set_sim_params import fastmath_flag, parallel_flag
 
 
-@njit(fastmath=fastmath_flag, parallel=parallel_flag)
+@njit(cache = True, fastmath=fastmath_flag, parallel=parallel_flag)
 def compute_velocity_from_psi_unb(u_z, u_r, psi, R, dx):
     """
     computes velocity from the Stokes stream function
