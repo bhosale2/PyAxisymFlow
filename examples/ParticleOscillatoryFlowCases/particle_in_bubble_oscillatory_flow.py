@@ -11,6 +11,9 @@ from utils.dump_vtk import vtk_init, vtk_write
 from kernels.brinkmann_penalize import brinkmann_penalize
 from kernels.compute_velocity_from_psi import compute_velocity_from_psi_unb
 from kernels.compute_vorticity_from_velocity import compute_vorticity_from_velocity_unb
+from kernels.diffusion_RK2_unb import diffusion_RK2_unb
+from kernels.advect_particle import advect_vorticity_via_particles
+from kernels.compute_forces import compute_force_on_body
 from kernels.smooth_Heaviside import smooth_Heaviside
 from kernels.kill_boundary_vorticity_sine import (
     kill_boundary_vorticity_sine_r,
@@ -60,6 +63,7 @@ smooth_Heaviside(part_char_func, part_phi, moll_zone)
 part_mass = rho_s * np.sum(part_char_func * R)
 part_vol = np.sum(part_char_func * R)
 part_Z_cm_old = part_Z_cm
+part_Z_cm_new = part_Z_cm
 
 vorticity = 0 * Z
 penal_vorticity = 0 * Z
@@ -316,9 +320,7 @@ while t < tEnd:
     compute_vorticity_from_velocity_unb(
         penal_vorticity, u_z - u_z_upen, u_r - u_r_upen, dx
     )
-    vorticity[...] += penal_vorticity
-
-    
+    vorticity[...] += penal_vorticity 
 
     # compute penalisation force and unsteady force
     F_pen = rho_f * brink_lam * np.sum(R * part_char_func * (u_z - U_z_cm_part))
@@ -341,15 +343,22 @@ while t < tEnd:
     r_particles[...] = R_double
     vorticity[...] = vort_double[grid_size_r:, :]
 
+    F_pen,F_un = compute_force_on_body(R, part_char_func, rho_f, brink_lam, u_z, U_z_cm_part, part_vol, dt, diff)
+    F_total = F_pen+F_un
+    # particle based vorticity advection
+    advect_vorticity_via_particles(
+        z_particles, r_particles, vort_particles, vorticity, Z_double, R_double, grid_size_r, u_z, u_r, dx, dt
+        )
+
     # diffuse vorticity
     diffusion_RK2_unb(vorticity, temp_vorticity, R, nu, dt, dx)
 
     # update particle location and velocity
     U_z_cm_part_old = U_z_cm_part
-    U_z_cm_part += 0.5*dt*(diff/dt+ ((F_pen + F_un) / part_mass))
-    diff= dt * (F_pen + F_un) / part_mass
+    U_z_cm_part += 0.5*dt*(diff/dt+ ((F_total) / part_mass))
+    diff= dt * (F_total) / part_mass
     part_Z_cm_new = part_Z_cm
-    part_Z_cm +=  U_z_cm_part_old*dt + (0.5*dt*dt*(F_pen + F_un)/ part_mass)
+    part_Z_cm +=  U_z_cm_part_old*dt + (0.5*dt*dt*(F_total)/ part_mass)
     part_Z_cm_old = part_Z_cm_new
 
 
