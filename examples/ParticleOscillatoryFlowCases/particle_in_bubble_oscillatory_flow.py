@@ -11,7 +11,6 @@ from utils.dump_vtk import vtk_init, vtk_write
 from kernels.brinkmann_penalize import brinkmann_penalize
 from kernels.compute_velocity_from_psi import compute_velocity_from_psi_unb
 from kernels.compute_vorticity_from_velocity import compute_vorticity_from_velocity_unb
-from kernels.diffusion_RK2_unb import diffusion_RK2_unb
 from kernels.advect_particle import advect_vorticity_via_particles
 from kernels.compute_forces import compute_force_on_body
 from kernels.smooth_Heaviside import smooth_Heaviside
@@ -20,7 +19,6 @@ from kernels.kill_boundary_vorticity_sine import (
     kill_boundary_vorticity_sine_z,
 )
 from kernels.diffusion_RK2_unb import diffusion_RK2_unb
-import core.particles_to_mesh as p2m
 from kernels.FastDiagonalisationStokesSolver import FastDiagonalisationStokesSolver
 
 plotset()
@@ -166,7 +164,6 @@ while t < tEnd:
     kill_boundary_vorticity_sine_r(vorticity, R, 3, dx)
 
     # solve for stream function and get velocity
-    # stokes_psi_solve_LU(psi, LU_decomp_psi, vorticity, R)
     FD_stokes_solver.solve(solution_field=psi, rhs_field=vorticity)
     compute_velocity_from_psi_unb(u_z, u_r, psi, R, dx)
 
@@ -269,7 +266,6 @@ while t < tEnd:
         0.01 * freqTimer_limit,
     )
 
-
     # get bubble breathing mode
     u_z_breath[...] = U_0 * (Z - bubble_Z_cm) * np.sin(omega * t) / r0_bubble
     u_r_breath[...] = U_0 * (R - bubble_R_cm) * np.sin(omega * t) / r0_bubble
@@ -298,7 +294,6 @@ while t < tEnd:
     avg_part_char_func[...] += part_char_func * dt / freqTimer_limit
     avg_psi[...] += psi * dt / freqTimer_limit
     avg_vort[...] += vorticity * dt / freqTimer_limit
-    # avg_Z_cm += part_Z_cm * dt / freqTimer_limit
     avg_Z_cm += part_Z_cm * dt
     avg_time += t * dt
     cycle_time += dt
@@ -322,27 +317,6 @@ while t < tEnd:
     )
     vorticity[...] += penal_vorticity 
 
-    # compute penalisation force and unsteady force
-    F_pen = rho_f * brink_lam * np.sum(R * part_char_func * (u_z - U_z_cm_part))
-    F_un = (diff*part_vol) /dt
-
-    # particle advection
-    z_particles[grid_size_r:, :] += u_z * dt
-    z_particles[:grid_size_r, :] += np.flip(u_z, axis=0) * dt
-    r_particles[grid_size_r:, :] += u_r * dt
-    r_particles[:grid_size_r, :] += -np.flip(u_r, axis=0) * dt
-
-    # # remesh
-    vort_particles[grid_size_r:, :] = vorticity
-    vort_particles[:grid_size_r, :] = -np.flip(vorticity, axis=0)
-    vort_double[...] *= 0
-    p2m.particles_to_mesh_2D_unbounded_mp4(
-        z_particles, r_particles, vort_particles, vort_double, dx, dx
-    )
-    z_particles[...] = Z_double
-    r_particles[...] = R_double
-    vorticity[...] = vort_double[grid_size_r:, :]
-
     F_pen,F_un = compute_force_on_body(R, part_char_func, rho_f, brink_lam, u_z, U_z_cm_part, part_vol, dt, diff)
     F_total = F_pen+F_un
     # particle based vorticity advection
@@ -360,7 +334,6 @@ while t < tEnd:
     part_Z_cm_new = part_Z_cm
     part_Z_cm +=  U_z_cm_part_old*dt + (0.5*dt*dt*(F_total)/ part_mass)
     part_Z_cm_old = part_Z_cm_new
-
 
     t += dt
     fotoTimer += dt
