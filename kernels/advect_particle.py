@@ -1,7 +1,4 @@
 import numpy as np
-import sys
-import os
-sys.path.append("../")
 import core.particles_to_mesh as p2m
 
 
