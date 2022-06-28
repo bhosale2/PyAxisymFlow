@@ -5,7 +5,7 @@ sys.path.append("../")
 import core.particles_to_mesh as p2m
 
 
-def advect_particle(z_particles, r_particles, vort_particles, vorticity, Z_double, R_double, grid_size_r, u_z, u_r, dx, dt):
+def advect_vorticity_via_particles(z_particles, r_particles, vort_particles, vorticity, Z_double, R_double, grid_size_r, u_z, u_r, dx, dt):
     """
     advects vorticity using particles
     """
