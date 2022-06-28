@@ -2,7 +2,7 @@ from numba import njit
 from set_sim_params import fastmath_flag, parallel_flag
 
 
-@njit(fastmath=fastmath_flag, parallel=parallel_flag)
+@njit(cache = True, fastmath=fastmath_flag, parallel=parallel_flag)
 def diffusion_RK2_unb(vorticity, temp_vorticity, R, nu, dt, dx):
     """
     update field due to diffusion using a RK2 time stepper
