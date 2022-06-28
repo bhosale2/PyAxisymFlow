@@ -12,8 +12,8 @@ from kernels.brinkmann_penalize import brinkmann_penalize
 from kernels.compute_velocity_from_psi import compute_velocity_from_psi_unb
 from kernels.compute_vorticity_from_velocity import compute_vorticity_from_velocity_unb
 from kernels.diffusion_RK2_unb import diffusion_RK2_unb
-from kernels.advect_particle import advect_particle
-from kernels.compute_forces import compute_forces
+from kernels.advect_particle import advect_vorticity_via_particles
+from kernels.compute_forces import compute_force_on_body
 from kernels.smooth_Heaviside import smooth_Heaviside
 from kernels.kill_boundary_vorticity_sine import (
     kill_boundary_vorticity_sine_r,
@@ -329,10 +329,10 @@ while t < tEnd:
 
     # compute penalisation force and unsteady force
 
-    F_pen,F_un = compute_forces(R, part_char_func, rho_f, brink_lam, u_z, U_z_cm_part, part_vol, dt, diff)
+    F_pen,F_un = compute_force_on_body(R, part_char_func, rho_f, brink_lam, u_z, U_z_cm_part, part_vol, dt, diff)
     F_total = F_pen+F_un
     # particle based vorticity advection
-    advect_particle(
+    advect_vorticity_via_particles(
         z_particles, r_particles, vort_particles, vorticity, Z_double, R_double, grid_size_r, u_z, u_r, dx, dt
         )
 
