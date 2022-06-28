@@ -12,6 +12,8 @@ from kernels.brinkmann_penalize import brinkmann_penalize
 from kernels.compute_velocity_from_psi import compute_velocity_from_psi_unb
 from kernels.compute_vorticity_from_velocity import compute_vorticity_from_velocity_unb
 from kernels.diffusion_RK2_unb import diffusion_RK2_unb
+from kernels.advect_particle import advect_particle
+from kernels.compute_forces import compute_forces
 from kernels.smooth_Heaviside import smooth_Heaviside
 from kernels.kill_boundary_vorticity_sine import (
     kill_boundary_vorticity_sine_r,
@@ -24,7 +26,6 @@ from kernels.FDM_stokes_psi_solve import (
     stokes_psi_solve_LU,
 )
 from kernels.diffusion_RK2_unb import diffusion_RK2_unb
-import core.particles_to_mesh as p2m
 
 plotset()
 plt.figure(figsize=(5 / domain_AR, 5))
@@ -66,6 +67,7 @@ smooth_Heaviside(part_char_func, part_phi, moll_zone)
 part_mass = rho_s * np.sum(part_char_func * R)
 part_vol = np.sum(part_char_func * R)
 part_Z_cm_old = part_Z_cm
+part_Z_cm_new = part_Z_cm
 
 vorticity = 0 * Z
 penal_vorticity = 0 * Z
@@ -327,35 +329,22 @@ while t < tEnd:
 
     # compute penalisation force and unsteady force
 
-    F_pen = rho_f * brink_lam * np.sum(R * part_char_func * (u_z - U_z_cm_part))
-    F_un =  (diff*part_vol) /dt
-
-    # particle advection
-    z_particles[grid_size_r:, :] += u_z * dt
-    z_particles[:grid_size_r, :] += np.flip(u_z, axis=0) * dt
-    r_particles[grid_size_r:, :] += u_r * dt
-    r_particles[:grid_size_r, :] += -np.flip(u_r, axis=0) * dt
-
-    # # remesh
-    vort_particles[grid_size_r:, :] = vorticity
-    vort_particles[:grid_size_r, :] = -np.flip(vorticity, axis=0)
-    vort_double[...] *= 0
-    p2m.particles_to_mesh_2D_unbounded_mp4(
-        z_particles, r_particles, vort_particles, vort_double, dx, dx
-    )
-    z_particles[...] = Z_double
-    r_particles[...] = R_double
-    vorticity[...] = vort_double[grid_size_r:, :]
+    F_pen,F_un = compute_forces(R, part_char_func, rho_f, brink_lam, u_z, U_z_cm_part, part_vol, dt, diff)
+    F_total = F_pen+F_un
+    # particle based vorticity advection
+    advect_particle(
+        z_particles, r_particles, vort_particles, vorticity, Z_double, R_double, grid_size_r, u_z, u_r, dx, dt
+        )
 
     # diffuse vorticity
     diffusion_RK2_unb(vorticity, temp_vorticity, R, nu, dt, dx)
 
     # update particle location and velocity
     U_z_cm_part_old = U_z_cm_part
-    U_z_cm_part += 0.5*dt*(diff/dt+ ((F_pen + F_un) / part_mass))
-    diff= dt * (F_pen + F_un) / part_mass
+    U_z_cm_part += 0.5*dt*(diff/dt+ ((F_total) / part_mass))
+    diff= dt * (F_total) / part_mass
     part_Z_cm_new = part_Z_cm
-    part_Z_cm +=  U_z_cm_part_old*dt + (0.5*dt*dt*(F_pen + F_un)/ part_mass)
+    part_Z_cm +=  U_z_cm_part_old*dt + (0.5*dt*dt*(F_total)/ part_mass)
     part_Z_cm_old = part_Z_cm_new
 
 
