@@ -11,20 +11,14 @@ from utils.dump_vtk import vtk_init, vtk_write
 from kernels.brinkmann_penalize import brinkmann_penalize
 from kernels.compute_velocity_from_psi import compute_velocity_from_psi_unb
 from kernels.compute_vorticity_from_velocity import compute_vorticity_from_velocity_unb
-from kernels.diffusion_RK2_unb import diffusion_RK2_unb
 from kernels.smooth_Heaviside import smooth_Heaviside
 from kernels.kill_boundary_vorticity_sine import (
     kill_boundary_vorticity_sine_r,
     kill_boundary_vorticity_sine_z,
 )
-from kernels.vortex_stretching import vortex_stretching
-from kernels.advect_vorticity_CD2 import advect_vorticity_CD2
-from kernels.FDM_stokes_psi_solve import (
-    stokes_psi_init,
-    stokes_psi_solve_LU,
-)
 from kernels.diffusion_RK2_unb import diffusion_RK2_unb
 import core.particles_to_mesh as p2m
+from kernels.FastDiagonalisationStokesSolver import FastDiagonalisationStokesSolver
 
 plotset()
 plt.figure(figsize=(5 / domain_AR, 5))
@@ -107,7 +101,7 @@ avg_Z_cm = 0.0
 avg_time = 0.0
 cycle_time = 0.0
 
-_, _, LU_decomp_psi = stokes_psi_init(R)
+FD_stokes_solver = FastDiagonalisationStokesSolver(grid_size_r, grid_size_z, dx)
 vtk_image_data, temp_vtk_array, writer = vtk_init()
 
 F_proj = 0.0
@@ -168,7 +162,8 @@ while t < tEnd:
     kill_boundary_vorticity_sine_r(vorticity, R, 3, dx)
 
     # solve for stream function and get velocity
-    stokes_psi_solve_LU(psi, LU_decomp_psi, vorticity, R)
+    # stokes_psi_solve_LU(psi, LU_decomp_psi, vorticity, R)
+    FD_stokes_solver.solve(solution_field=psi, rhs_field=vorticity)
     compute_velocity_from_psi_unb(u_z, u_r, psi, R, dx)
 
     if freqTimer >= freqTimer_limit:
@@ -326,9 +321,8 @@ while t < tEnd:
     
 
     # compute penalisation force and unsteady force
-
     F_pen = rho_f * brink_lam * np.sum(R * part_char_func * (u_z - U_z_cm_part))
-    F_un =  (diff*part_vol) /dt
+    F_un = (diff*part_vol) /dt
 
     # particle advection
     z_particles[grid_size_r:, :] += u_z * dt
@@ -363,8 +357,8 @@ while t < tEnd:
     fotoTimer += dt
     freqTimer += dt
     it += 1
-    #if it % 100 == 0:
-       # print(t, np.amax(vorticity), part_Z_cm, F_pen, F_un)
+    if it % 100 == 0:
+       print(t, np.amax(vorticity), part_Z_cm)
         
     
 
