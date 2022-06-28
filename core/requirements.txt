@@ -1,4 +1,3 @@
 pybind11
-numpy
 PyYAML
 CppHeaderParser
