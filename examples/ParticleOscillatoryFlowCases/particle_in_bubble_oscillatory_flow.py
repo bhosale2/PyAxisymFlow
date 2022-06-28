@@ -227,15 +227,10 @@ while t < tEnd:
             ["avg_part_char_func", "avg_psi", "avg_vort","u_z","u_r","avg_psi"],
             [avg_part_char_func, avg_psi, avg_vort, u_z, u_r, avg_psi],
         )
-        # avg_T.append(t - 0.5 * freqTimer_limit)
-        # avg_part_trajectory.append((avg_Z_cm - bubble_Z_cm) / r0_bubble)
+        
         avg_T = np.append(avg_T, (avg_time / cycle_time))
         avg_part_trajectory = np.append(avg_part_trajectory, (avg_Z_cm / cycle_time - bubble_Z_cm) / r0_bubble)
         cycle_end_part_trajectory = np.append(cycle_end_part_trajectory, (part_Z_cm - bubble_Z_cm) / r0_bubble)
-       # avg_T.append(avg_time / cycle_time)
-       # avg_part_trajectory.append((avg_Z_cm / cycle_time - bubble_Z_cm) / r0_bubble)
-       # cycle_end_part_trajectory.append((part_Z_cm - bubble_Z_cm) / r0_bubble)
-
 
     # get dt
         np.savez(
@@ -334,13 +329,6 @@ while t < tEnd:
 
     F_pen = rho_f * brink_lam * np.sum(R * part_char_func * (u_z - U_z_cm_part))
     F_un =  (diff*part_vol) /dt
-    u_z_old[...]  = u_z
-    
-    old_dt = dt
-
-    # FDM CD advection, usually unstable but works for low Re
-    # flux = temp_vorticity
-    # advect_vorticity_CD2(vorticity, flux, u_z, u_r, dt, dx)
 
     # particle advection
     z_particles[grid_size_r:, :] += u_z * dt
@@ -358,12 +346,6 @@ while t < tEnd:
     z_particles[...] = Z_double
     r_particles[...] = R_double
     vorticity[...] = vort_double[grid_size_r:, :]
-
-    # correct conservative advection, cancels out with vortex stretching term
-    # vorticity[...] -= vorticity * dt * u_r / R
-
-    # stretching term
-    # vortex_stretching(vorticity, u_r, R, dt)
 
     # diffuse vorticity
     diffusion_RK2_unb(vorticity, temp_vorticity, R, nu, dt, dx)
