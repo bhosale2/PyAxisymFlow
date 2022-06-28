@@ -11,4 +11,4 @@ eps = numpy.finfo(float).eps
 # numba settings
 num_threads = 4
 fastmath_flag = True
-parallel_flag = True
+parallel_flag = False
