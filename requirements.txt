@@ -1,0 +1,6 @@
+matplotlib
+numba
+numpy
+scipy
+seaborn
+vtk
