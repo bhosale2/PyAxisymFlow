@@ -1,6 +1,6 @@
 import numpy as np
 
-def compute_forces(R, part_char_func, rho_f, brink_lam, u_z, U_z_cm_part, part_vol, dt, diff):
+def compute_force_on_body(R, part_char_func, rho_f, brink_lam, u_z, U_z_cm_part, part_vol, dt, diff):
     """
     computes penalization and unsteady forces
     """
