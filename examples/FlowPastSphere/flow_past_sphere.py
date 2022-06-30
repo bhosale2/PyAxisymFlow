@@ -21,8 +21,6 @@ from kernels.kill_boundary_vorticity_sine import (
 from kernels.diffusion_RK2_unb import diffusion_RK2_unb
 from kernels.FastDiagonalisationStokesSolver import FastDiagonalisationStokesSolver
 
-# from kernels.poisson_solve_unb import pseudo_poisson_solve_unb
-
 plotset()
 plt.figure(figsize=(5 / domain_AR, 5))
 # Parameters
@@ -175,10 +173,7 @@ while t < tEnd:
         penal_vorticity, u_z - u_z_upen, u_r - u_r_upen, dx
     )
     vorticity[...] += penal_vorticity
-    Cd =  2*2 * np.pi * dx * dx * brink_lam * np.sum(R*char_func * (u_z))/ (np.pi*r_cyl**2)
-    
-
-
+    Cd =  2*2 * np.pi * dx * dx * brink_lam * np.sum(R*char_func * (u_z))/ (np.pi*r_cyl**2) #(Cd = F/0.5*p*U^2*A^2)
 
     advect_vorticity_via_particles(
         z_particles, r_particles, vort_particles, vorticity, Z_double, R_double, grid_size_r, u_z, u_r, dx, dt
@@ -193,7 +188,7 @@ while t < tEnd:
     it += 1
     freqTimer = freqTimer + dt
     if it % 50 == 0:
-        print(t, np.amax(vorticity), Cd)
+        print(f"time: {t}, max vort: {np.amax(vorticity)}, drag coeff: {Cd}")
 
 
 os.system("rm -f 2D_advect.mp4")
