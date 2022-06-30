@@ -20,7 +20,6 @@ from kernels.kill_boundary_vorticity_sine import (
 )
 from kernels.diffusion_RK2_unb import diffusion_RK2_unb
 from kernels.FastDiagonalisationStokesSolver import FastDiagonalisationStokesSolver
-# from kernels.poisson_solve_unb import pseudo_poisson_solve_unb
 
 plotset()
 plt.figure(figsize=(5 / domain_AR, 5))
@@ -68,7 +67,6 @@ vort_particles = 0 * vort_double
 Z_double, R_double = np.meshgrid(z, z)
 z_particles = Z_double.copy()
 r_particles = R_double.copy()
-
 
 
 #  create char function
