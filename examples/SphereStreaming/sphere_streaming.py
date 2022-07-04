@@ -85,7 +85,6 @@ while t < tEnd:
     kill_boundary_vorticity_sine_r(vorticity, R, 3, dx)
 
     # solve for stream function and get velocity
-    # stokes_psi_solve_gmres(psi, FDM_matrix, precond_matrix, vorticity, R)
     FD_stokes_solver.solve(solution_field=psi, rhs_field=vorticity)
     compute_velocity_from_psi_unb(u_z, u_r, psi, R, dx)
 
@@ -175,7 +174,7 @@ while t < tEnd:
     it += 1
     freqTimer = freqTimer + dt
     if it % 50 == 0:
-        print(t, np.amax(vorticity))
+        print(f"time: {t}, max vort: {np.amax(vorticity)})
 
 
 os.system("rm -f 2D_advect.mp4")
