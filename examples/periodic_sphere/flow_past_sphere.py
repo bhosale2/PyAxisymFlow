@@ -127,9 +127,9 @@ while t < tEnd:
         )
 
         plt.contour(
-            Z,
-            R,
-            u_z,
+            Z[..., ghost_size:-ghost_size],
+            R[..., ghost_size:-ghost_size],
+            u_z[..., ghost_size:-ghost_size],
             levels=[
                 0.0,
             ],
