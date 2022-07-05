@@ -170,7 +170,6 @@ while t < tEnd:
         penal_vorticity, u_z - u_z_upen, u_r - u_r_upen, dx, per_communicator
     )
     vorticity[...] += penal_vorticity
-    #Cd =  2*2 * np.pi * dx * dx * brink_lam * np.sum(R*char_func * (u_z))/ (np.pi*r_cyl**2) #(Cd = F/0.5*p*U^2*A^2)
 
     advect_vorticity_via_particles_periodic(
         z_particles, r_particles, vort_particles, vorticity, Z_double, R_double, grid_size_r, u_z, u_r, dx, dt
