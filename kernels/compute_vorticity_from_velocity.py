@@ -13,7 +13,7 @@ def compute_vorticity_from_velocity_unb(vort, u_z, u_r, dx):
         u_z[2:, 1:-1] - u_z[:-2, 1:-1]
     ) / (2 * dx)
 
-def compute_vorticity_from_velocity_unb_periodic(vort, u_z, u_r, dx, per_communicator ):
+def compute_vorticity_from_velocity_periodic(vort, u_z, u_r, dx, per_communicator ):
     """
     compute vorticity from velocity field
     """
