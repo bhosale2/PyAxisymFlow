@@ -160,11 +160,6 @@ while t < tEnd:
         0.01 * freqTimer_limit,
     )
 
-    
-    # integrate averaged fields
-    avg_psi[...] += psi * dt
-
-
     # penalise velocity (particle)
     u_z_upen[...] = u_z.copy()
     u_r_upen[...] = u_r.copy()
