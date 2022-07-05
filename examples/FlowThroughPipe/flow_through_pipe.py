@@ -18,26 +18,30 @@ from kernels.kill_boundary_vorticity_sine import (
 from kernels.FastDiagonalisationStokesSolver import FastDiagonalisationStokesSolver
 from kernels.periodic_boundary_ghost_comm import gen_periodic_boundary_ghost_comm
 from kernels.compute_velocity_from_psi import compute_velocity_from_psi_periodic
-from kernels.compute_vorticity_from_velocity import compute_vorticity_from_velocity_periodic
+from kernels.compute_vorticity_from_velocity import (
+    compute_vorticity_from_velocity_periodic,
+)
 from kernels.advect_particle import advect_vorticity_via_particles_periodic
 from kernels.diffusion_RK2 import diffusion_RK2_periodic
-#plotset()
+
+# plotset()
 plt.figure(figsize=(5 / domain_AR, 5))
 # Parameters
 fotoTimer_limit = 0.1
 brink_lam = 1e12
-moll_zone = dx * 2 ** 0.5
-wall_thickness = 0.02
-R_wall_center = 0.42
-R_tube = R_cm-wall_thickness
+moll_zone = dx * 2**0.5
+wall_thickness = 0.1
+R_wall_center = 0.5
+R_tube = R_wall_center - wall_thickness
 Re = 100.0
 U_0 = 1.0
 R_extent = 0.5
-U_act = U_0 * R_extent / R_tube
+U_act = U_0 * (R_extent / R_tube) ** 2
+print(U_act)
 nu = U_act * 2 * R_tube / Re
 nondim_T = 300
-tEnd = nondim_T * R_tube  / U_act
-T_ramp = 20 * R_tube  / U_act
+tEnd = nondim_T * R_tube / U_act
+T_ramp = 20 * R_tube / U_act
 ghost_size = 2
 per_communicator = gen_periodic_boundary_ghost_comm(ghost_size)
 
@@ -56,8 +60,8 @@ avg_vort = 0 * Z
 avg_part_char_func = 0 * Z
 u_z = 0 * Z
 u_r = 0 * Z
-u_z_old =  0 * Z
-u_r_old =  0 * Z
+u_z_old = 0 * Z
+u_r_old = 0 * Z
 u_z_upen = 0 * Z
 u_r_upen = 0 * Z
 inside_bubble = 0 * Z
@@ -80,13 +84,18 @@ T = []
 diff = 0
 F_total = 0
 #  create char function
-phi0 = -np.sqrt((R - R_cm) ** 2) + wall_thickness
+phi0 = -np.sqrt((R - R_wall_center) ** 2) + wall_thickness
 char_func = 0 * Z
 smooth_Heaviside(char_func, phi0, moll_zone)
 part_mass = np.sum(char_func * R)
 
 psi_inner = psi[..., ghost_size:-ghost_size].copy()
-FD_stokes_solver = FastDiagonalisationStokesSolver(grid_size_r, grid_size_z-2*ghost_size, dx, bc_type= "homogenous_dirichlet_along_r_and_periodic_along_z")
+FD_stokes_solver = FastDiagonalisationStokesSolver(
+    grid_size_r,
+    grid_size_z - 2 * ghost_size,
+    dx,
+    bc_type="homogenous_dirichlet_along_r_and_periodic_along_z",
+)
 vtk_image_data, temp_vtk_array, writer = vtk_init()
 
 # solver loop
@@ -102,7 +111,7 @@ while t < tEnd:
     )
     psi[..., ghost_size:-ghost_size] = psi_inner
     compute_velocity_from_psi_periodic(u_z, u_r, psi, R, dx, per_communicator)
-    
+
     # add free stream
     prefac_x = 1.0
     prefac_y = 0.0
@@ -112,17 +121,18 @@ while t < tEnd:
     u_z[...] += U_0 * prefac_x
     u_r[...] += U_0 * prefac_y
 
-
     if fotoTimer >= fotoTimer_limit or t == 0:
         fotoTimer = 0.0
 
         fotoTimer = 0.0
         levels = np.linspace(-0.1, 0.1, 25)
-        plt.plot(R[:,int(grid_size_z/2)],u_z[:,int(grid_size_z/2)])
-        plt.xticks([])
-        plt.yticks([])
-        plt.gca().set_aspect("equal")
-        plt.savefig("snap_" + str("%0.4d" % (t * 100)) + ".png") 
+        plt.plot(R[:, int(grid_size_z / 2)], u_z[:, int(grid_size_z / 2)])
+        plt.plot(
+            R[:, int(grid_size_z / 2)],
+            2 * U_act * (1 - (R[:, int(grid_size_z / 2)] / R_tube) ** 2),
+        )
+        plt.ylim([0, 2.5 * U_act])
+        plt.savefig("snap_" + str("%0.4d" % (t * 100)) + ".png")
         plt.clf()
         plt.close("all")
 
@@ -137,7 +147,7 @@ while t < tEnd:
 
     # get dt
     dt = min(
-        0.9 * dx ** 2 / 4 / nu,
+        0.9 * dx**2 / 4 / nu,
         LCFL / (np.amax(np.fabs(vorticity)) + eps),
         0.01 * freqTimer_limit,
     )
@@ -145,17 +155,25 @@ while t < tEnd:
     # penalise velocity (particle)
     u_z_upen[...] = u_z.copy()
     u_r_upen[...] = u_r.copy()
-    brinkmann_penalize(
-        brink_lam, dt, char_func, 0.0, 0.0, u_z_upen, u_r_upen, u_z, u_r
-    )
+    brinkmann_penalize(brink_lam, dt, char_func, 0.0, 0.0, u_z_upen, u_r_upen, u_z, u_r)
     compute_vorticity_from_velocity_periodic(
         penal_vorticity, u_z - u_z_upen, u_r - u_r_upen, dx, per_communicator
     )
     vorticity[...] += penal_vorticity
 
     advect_vorticity_via_particles_periodic(
-        z_particles, r_particles, vort_particles, vorticity, Z_double, R_double, grid_size_r, u_z, u_r, dx, dt
-        )
+        z_particles,
+        r_particles,
+        vort_particles,
+        vorticity,
+        Z_double,
+        R_double,
+        grid_size_r,
+        u_z,
+        u_r,
+        dx,
+        dt,
+    )
 
     # diffuse vorticity
     diffusion_RK2_periodic(vorticity, temp_vorticity, R, nu, dt, dx, per_communicator)
