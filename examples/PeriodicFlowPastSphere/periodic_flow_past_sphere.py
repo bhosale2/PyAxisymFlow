@@ -48,7 +48,6 @@ vorticity = 0 * Z
 penal_vorticity = 0 * Z
 temp_vorticity = 0 * Z
 psi = 0 * Z
-psi_inner = 0 * Z
 avg_psi = 0 * Z
 avg_vort = 0 * Z
 avg_part_char_func = 0 * Z
