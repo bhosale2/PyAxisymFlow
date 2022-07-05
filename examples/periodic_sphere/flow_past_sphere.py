@@ -34,7 +34,7 @@ nu = U_0 * 2 * r_cyl / Re
 nondim_T = 300
 tEnd = nondim_T * r_cyl / U_0
 T_ramp = 20 * r_cyl / U_0
-ghost_size =2
+ghost_size = 2
 per_communicator = gen_periodic_boundary_ghost_comm(ghost_size)
 
 # Build discrete domain
