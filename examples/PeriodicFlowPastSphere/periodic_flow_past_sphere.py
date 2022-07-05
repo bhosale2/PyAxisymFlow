@@ -20,7 +20,7 @@ from kernels.periodic_boundary_ghost_comm import gen_periodic_boundary_ghost_com
 from kernels.compute_velocity_from_psi import compute_velocity_from_psi_unb_periodic
 from kernels.compute_vorticity_from_velocity import compute_vorticity_from_velocity_unb_periodic
 from kernels.advect_particle import advect_vorticity_via_particles_periodic
-from kernels.diffusion_RK2_unb import diffusion_RK2_unb_periodic
+from kernels.diffusion_RK2 import diffusion_RK2_periodic
 plotset()
 plt.figure(figsize=(5 / domain_AR, 5))
 # Parameters
@@ -176,7 +176,7 @@ while t < tEnd:
         )
 
     # diffuse vorticity
-    diffusion_RK2_unb_periodic(vorticity, temp_vorticity, R, nu, dt, dx, per_communicator)
+    diffusion_RK2_periodic(vorticity, temp_vorticity, R, nu, dt, dx, per_communicator)
 
     #  update time
     t += dt
