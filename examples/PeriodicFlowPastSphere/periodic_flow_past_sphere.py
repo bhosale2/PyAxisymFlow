@@ -83,7 +83,7 @@ smooth_Heaviside(char_func, phi0, moll_zone)
 part_mass = np.sum(char_func * R)
 
 # solving poisson only on the inner grid
-psi_inner[...] = psi[..., ghost_size:-ghost_size].copy()
+psi_inner = psi[..., ghost_size:-ghost_size].copy()
 FD_stokes_solver = FastDiagonalisationStokesSolver(grid_size_r, grid_size_z-2*ghost_size, dx, bc_type= "homogenous_neumann_along_r_and_periodic_along_z")
 vtk_image_data, temp_vtk_array, writer = vtk_init()
 
