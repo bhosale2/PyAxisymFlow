@@ -77,6 +77,13 @@ class FastDiagonalisationStokesSolver:
             # neumann at R_max
             derivative_matrix_r[-1, -2] = 0
 
+        elif self.bc_type == "homogenous_neumann_along_r_and_periodic_along_z":           
+            poisson_matrix_z[0, -1] = poisson_matrix_z[0, 1]
+            poisson_matrix_z[-1, 0] = poisson_matrix_z[-1, -2]
+            poisson_matrix_r[-1, -1] = inv_dx2
+            # neumann at R_max
+            derivative_matrix_r[-1, -2] = 0
+
     def compute_spectral_decomp_of_poisson_matrices(
             self, poisson_matrix_z, poisson_matrix_r, derivative_matrix_r,
     ):
