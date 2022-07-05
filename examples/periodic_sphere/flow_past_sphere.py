@@ -118,9 +118,9 @@ while t < tEnd:
         fotoTimer = 0.0
         levels = np.linspace(-0.1, 0.1, 25)
         plt.contourf(
-            Z,
-            R,
-            vorticity,
+            Z[..., ghost_size:-ghost_size],
+            R[..., ghost_size:-ghost_size],
+            vorticity[..., ghost_size:-ghost_size],
             levels=100,
             extend="both",
             cmap=lab_cmp,
@@ -137,9 +137,9 @@ while t < tEnd:
         )
 
         plt.contour(
-            Z,
-            R,
-            char_func,
+            Z[..., ghost_size:-ghost_size],
+            R[..., ghost_size:-ghost_size],
+            char_func[..., ghost_size:-ghost_size],
             levels=[
                 0.5,
             ],
