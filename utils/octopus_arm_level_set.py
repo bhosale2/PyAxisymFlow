@@ -3,10 +3,15 @@ from matplotlib import pyplot as plt
 
 
 def octopus_arm_level_set(
-    inp_X, inp_Y, center_basal_x, distance_between_centers_x, center_y, r_basal, r_tip,
+    inp_X,
+    inp_Y,
+    center_basal_x,
+    distance_between_centers_x,
+    center_y,
+    r_basal,
+    r_tip,
 ):
-    """ Gives the level set of an octopus like-arm
-    """
+    """Gives the level set of an octopus like-arm"""
     # Horizontal octopus arm
     # 1. Basal circle
     # 2. Straight line above and below symmetry plane
@@ -48,7 +53,7 @@ def octopus_arm_level_set(
     shifted_Y = inp_Y - attach_basal_y
 
     cot_basal_theta = 1.0 / np.tan(basal_theta)
-    dist = (shifted_Y + cot_basal_theta * shifted_X) / np.sqrt(1 + cot_basal_theta ** 2)
+    dist = (shifted_Y + cot_basal_theta * shifted_X) / np.sqrt(1 + cot_basal_theta**2)
     mask_idx = (inp_Y > center_y) & np.logical_not(np.logical_or(idx_one, idx_two))
     phi[mask_idx] = dist[mask_idx]
 
@@ -61,7 +66,7 @@ def octopus_arm_level_set(
     shifted_Y = inp_Y - attach_basal_y
 
     dist = -(shifted_Y - cot_basal_theta * shifted_X) / np.sqrt(
-        1 + cot_basal_theta ** 2
+        1 + cot_basal_theta**2
     )
     mask_idx = (inp_Y < center_y) & np.logical_not(np.logical_or(idx_one, idx_two))
     phi[mask_idx] = dist[mask_idx]
@@ -84,7 +89,20 @@ def __internal_level_set_test(inp_X, inp_Y, phi_input):
         / del_y
     )
     phi_gradient = (
-        (grad_x @ phi.reshape(-1,)) ** 2 + (grad_y @ phi.reshape(-1,)) ** 2
+        (
+            grad_x
+            @ phi.reshape(
+                -1,
+            )
+        )
+        ** 2
+        + (
+            grad_y
+            @ phi.reshape(
+                -1,
+            )
+        )
+        ** 2
     ).reshape(grid_size[0], grid_size[1])
     return np.sqrt(phi_gradient)
 
@@ -118,7 +136,7 @@ if __name__ == "__main__":
 
     # Level set of an ellipse
     phi_two = np.fliplr(phi)
-    phi_ellipse = np.sqrt((X - 0.5) ** 2 / 0.1 ** 2 + (Y - 0.6) ** 2 / 0.18 ** 2) - 1
+    phi_ellipse = np.sqrt((X - 0.5) ** 2 / 0.1**2 + (Y - 0.6) ** 2 / 0.18**2) - 1
 
     idx = (phi > 0.0) * (phi_two > 0.0) * (phi_ellipse > 0.0)
 

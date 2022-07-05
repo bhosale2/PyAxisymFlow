@@ -2,7 +2,7 @@ from numba import njit
 from set_sim_params import fastmath_flag, parallel_flag
 
 
-@njit(cache = True, fastmath=fastmath_flag, parallel=parallel_flag)
+@njit(cache=True, fastmath=fastmath_flag, parallel=parallel_flag)
 def compute_vorticity_from_velocity_unb(vort, u_z, u_r, dx):
     """
     compute vorticity from velocity field
@@ -13,7 +13,8 @@ def compute_vorticity_from_velocity_unb(vort, u_z, u_r, dx):
         u_z[2:, 1:-1] - u_z[:-2, 1:-1]
     ) / (2 * dx)
 
-def compute_vorticity_from_velocity_periodic(vort, u_z, u_r, dx, per_communicator ):
+
+def compute_vorticity_from_velocity_periodic(vort, u_z, u_r, dx, per_communicator):
     """
     compute vorticity from velocity field
     """
