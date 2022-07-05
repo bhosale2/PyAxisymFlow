@@ -98,7 +98,7 @@ while t < tEnd:
     # solve for stream function and get velocity
     psi_inner[...] = psi[..., ghost_size:-ghost_size]
     FD_stokes_solver.solve(solution_field=psi_l, rhs_field=vorticity[:,ghost_size:-ghost_size])
-    psi[:,ghost_size:-ghost_size] = psi_l
+    psi[..., ghost_size:-ghost_size] = psi_inner
 
     compute_velocity_from_psi_unb_periodic(u_z, u_r, psi, R, dx, per_communicator)
     
