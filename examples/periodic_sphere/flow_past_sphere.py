@@ -38,6 +38,7 @@ ghost_size = 2
 per_communicator = gen_periodic_boundary_ghost_comm(ghost_size)
 
 # Build discrete domain
+# Note that only interior of this domain (removing ghost size zone) will be used for the problem
 z = np.linspace(0 + dx / 2, 1 - dx / 2, grid_size_z)
 r = np.linspace(0 + dx / 2, domain_AR - dx / 2, grid_size_r)
 Z, R = np.meshgrid(z, r)
