@@ -96,7 +96,7 @@ while t < tEnd:
    
 
     # solve for stream function and get velocity
-    psi_l = psi[:,ghost_size:-ghost_size].copy()
+    psi_inner[...] = psi[..., ghost_size:-ghost_size]
     FD_stokes_solver.solve(solution_field=psi_l, rhs_field=vorticity[:,ghost_size:-ghost_size])
     psi[:,ghost_size:-ghost_size] = psi_l
 
