@@ -118,25 +118,7 @@ while t < tEnd:
 
         fotoTimer = 0.0
         levels = np.linspace(-0.1, 0.1, 25)
-        plt.contourf(
-            Z[..., ghost_size:-ghost_size],
-            R[..., ghost_size:-ghost_size],
-            vorticity[..., ghost_size:-ghost_size],
-            levels=100,
-            extend="both",
-            cmap=lab_cmp,
-        )
-
-        plt.contour(
-            Z[..., ghost_size:-ghost_size],
-            R[..., ghost_size:-ghost_size],
-            u_z[..., ghost_size:-ghost_size],
-            levels=[
-                0.0,
-            ],
-            colors="red",
-        )
-
+        plt.plot(R[:,int(grid_size_z/2)],u_z[:,int(grid_size_z/2)])
         plt.xticks([])
         plt.yticks([])
         plt.gca().set_aspect("equal")
