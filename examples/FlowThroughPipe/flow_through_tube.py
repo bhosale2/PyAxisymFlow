@@ -85,6 +85,7 @@ char_func = 0 * Z
 smooth_Heaviside(char_func, phi0, moll_zone)
 part_mass = np.sum(char_func * R)
 
+psi_inner = psi[..., ghost_size:-ghost_size].copy()
 FD_stokes_solver = FastDiagonalisationStokesSolver(grid_size_r, grid_size_z-2*ghost_size, dx, bc_type= "homogenous_dirichlet_along_r_and_periodic_along_z")
 vtk_image_data, temp_vtk_array, writer = vtk_init()
 
@@ -95,9 +96,11 @@ while t < tEnd:
     kill_boundary_vorticity_sine_r(vorticity, R, 3, dx)
 
     # solve for stream function and get velocity
-    psi_l = psi[:,ghost_size:-ghost_size].copy()
-    FD_stokes_solver.solve(solution_field=psi_l, rhs_field=vorticity[:,ghost_size:-ghost_size])
-    psi[:,ghost_size:-ghost_size] = psi_l
+    psi_inner[...] = psi[..., ghost_size:-ghost_size]
+    FD_stokes_solver.solve(
+        solution_field=psi_inner, rhs_field=vorticity[:, ghost_size:-ghost_size]
+    )
+    psi[..., ghost_size:-ghost_size] = psi_inner
     compute_velocity_from_psi_periodic(u_z, u_r, psi, R, dx, per_communicator)
     
     # add free stream
@@ -116,20 +119,21 @@ while t < tEnd:
         fotoTimer = 0.0
         levels = np.linspace(-0.1, 0.1, 25)
         plt.contourf(
-            Z,
-            R,
-            u_z,
+            Z[..., ghost_size:-ghost_size],
+            R[..., ghost_size:-ghost_size],
+            vorticity[..., ghost_size:-ghost_size],
             levels=100,
             extend="both",
             cmap=lab_cmp,
         )
-        plt.colorbar()
-     
+
         plt.contour(
-            Z,
-            R,
-            u_z,
-            levels=10,
+            Z[..., ghost_size:-ghost_size],
+            R[..., ghost_size:-ghost_size],
+            u_z[..., ghost_size:-ghost_size],
+            levels=[
+                0.0,
+            ],
             colors="red",
         )
 
