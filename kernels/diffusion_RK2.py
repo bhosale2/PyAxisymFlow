@@ -2,7 +2,7 @@ from numba import njit
 from set_sim_params import fastmath_flag, parallel_flag
 
 
-@njit(cache = True, fastmath=fastmath_flag, parallel=parallel_flag)
+@njit(cache=True, fastmath=fastmath_flag, parallel=parallel_flag)
 def diffusion_RK2_unb(vorticity, temp_vorticity, R, nu, dt, dx):
     """
     update field due to diffusion using a RK2 time stepper
@@ -20,7 +20,7 @@ def diffusion_RK2_unb(vorticity, temp_vorticity, R, nu, dt, dx):
                 + vorticity[1:-1, :-2]
                 - 4 * vorticity[1:-1, 1:-1]
             )
-            / (dx ** 2)
+            / (dx**2)
             + (vorticity[2:, 1:-1] - vorticity[:-2, 1:-1]) / (2 * dx) / R[1:-1, 1:-1]
             - vorticity[1:-1, 1:-1] * (R[1:-1, 1:-1] ** -2)
         )
@@ -36,7 +36,7 @@ def diffusion_RK2_unb(vorticity, temp_vorticity, R, nu, dt, dx):
                 + temp_vorticity[1:-1, :-2]
                 - 4 * temp_vorticity[1:-1, 1:-1]
             )
-            / (dx ** 2)
+            / (dx**2)
             + (temp_vorticity[2:, 1:-1] - temp_vorticity[:-2, 1:-1])
             / (2 * dx)
             / R[1:-1, 1:-1]
@@ -63,7 +63,7 @@ def diffusion_RK2_unb_diffrho(vorticity, temp_vorticity, R, density, nu, dt, dx)
                 + vorticity[1:-1, :-2]
                 - 4 * vorticity[1:-1, 1:-1]
             )
-            / (dx ** 2)
+            / (dx**2)
             + (vorticity[2:, 1:-1] - vorticity[:-2, 1:-1]) / (2 * dx) / R[1:-1, 1:-1]
             - vorticity[1:-1, 1:-1] * (R[1:-1, 1:-1] ** -2)
         )
@@ -80,7 +80,7 @@ def diffusion_RK2_unb_diffrho(vorticity, temp_vorticity, R, density, nu, dt, dx)
                 + temp_vorticity[1:-1, :-2]
                 - 4 * temp_vorticity[1:-1, 1:-1]
             )
-            / (dx ** 2)
+            / (dx**2)
             + (temp_vorticity[2:, 1:-1] - temp_vorticity[:-2, 1:-1])
             / (2 * dx)
             / R[1:-1, 1:-1]
@@ -88,8 +88,6 @@ def diffusion_RK2_unb_diffrho(vorticity, temp_vorticity, R, density, nu, dt, dx)
         )
         / density[1:-1, 1:-1]
     )
-
-
 
 
 def diffusion_RK2_periodic(vorticity, temp_vorticity, R, nu, dt, dx, per_communicator):
@@ -110,7 +108,7 @@ def diffusion_RK2_periodic(vorticity, temp_vorticity, R, nu, dt, dx, per_communi
                 + vorticity[1:-1, :-2]
                 - 4 * vorticity[1:-1, 1:-1]
             )
-            / (dx ** 2)
+            / (dx**2)
             + (vorticity[2:, 1:-1] - vorticity[:-2, 1:-1]) / (2 * dx) / R[1:-1, 1:-1]
             - vorticity[1:-1, 1:-1] * (R[1:-1, 1:-1] ** -2)
         )
@@ -127,11 +125,10 @@ def diffusion_RK2_periodic(vorticity, temp_vorticity, R, nu, dt, dx, per_communi
                 + temp_vorticity[1:-1, :-2]
                 - 4 * temp_vorticity[1:-1, 1:-1]
             )
-            / (dx ** 2)
+            / (dx**2)
             + (temp_vorticity[2:, 1:-1] - temp_vorticity[:-2, 1:-1])
             / (2 * dx)
             / R[1:-1, 1:-1]
             - temp_vorticity[1:-1, 1:-1] * (R[1:-1, 1:-1] ** -2)
         )
     )
-

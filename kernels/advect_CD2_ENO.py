@@ -2,7 +2,7 @@ from numba import njit
 from set_sim_params import fastmath_flag, parallel_flag
 
 
-@njit(cache = True, fastmath=fastmath_flag, parallel=parallel_flag)
+@njit(cache=True, fastmath=fastmath_flag, parallel=parallel_flag)
 def advect_CD2_ENO(
     eta, u_z, u_r, temp_gradient, total_flux, pos_flux, neg_flux, dt, dx
 ):
@@ -50,6 +50,8 @@ def advect_CD2_ENO(
             / (2 * dx)
         )
     )
-    total_flux[0, :] -= dt * u_r[0, :] * (-eta[2, :] + 4 * eta[1, :] - 3 * eta[0, :]) / (2 * dx)
+    total_flux[0, :] -= (
+        dt * u_r[0, :] * (-eta[2, :] + 4 * eta[1, :] - 3 * eta[0, :]) / (2 * dx)
+    )
 
     eta[...] = eta + total_flux

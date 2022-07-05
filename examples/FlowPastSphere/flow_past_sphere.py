@@ -26,7 +26,7 @@ plt.figure(figsize=(5 / domain_AR, 5))
 # Parameters
 fotoTimer_limit = 0.1
 brink_lam = 1e12
-moll_zone = dx * 2 ** 0.5
+moll_zone = dx * 2**0.5
 r_cyl = 0.075
 U_0 = 1.0
 Re = 100.0
@@ -50,8 +50,8 @@ avg_vort = 0 * Z
 avg_part_char_func = 0 * Z
 u_z = 0 * Z
 u_r = 0 * Z
-u_z_old =  0 * Z
-u_r_old =  0 * Z
+u_z_old = 0 * Z
+u_r_old = 0 * Z
 u_z_upen = 0 * Z
 u_r_upen = 0 * Z
 inside_bubble = 0 * Z
@@ -94,12 +94,11 @@ while t < tEnd:
     # kill vorticity at boundaries
     kill_boundary_vorticity_sine_z(vorticity, Z, 3, dx)
     kill_boundary_vorticity_sine_r(vorticity, R, 3, dx)
-   
 
     # solve for stream function and get velocity
     FD_stokes_solver.solve(solution_field=psi, rhs_field=vorticity)
     compute_velocity_from_psi_unb(u_z, u_r, psi, R, dx)
-    
+
     # add free stream
     prefac_x = 1.0
     prefac_y = 0.0
@@ -108,7 +107,6 @@ while t < tEnd:
         prefac_y = 5e-2 * np.sin(np.pi * t / T_ramp)
     u_z[...] += U_0 * prefac_x
     u_r[...] += U_0 * prefac_y
-
 
     if fotoTimer >= fotoTimer_limit or t == 0:
         fotoTimer = 0.0
@@ -147,37 +145,52 @@ while t < tEnd:
         plt.xticks([])
         plt.yticks([])
         plt.gca().set_aspect("equal")
-        plt.savefig("snap_" + str("%0.4d" % (t * 100)) + ".png") 
+        plt.savefig("snap_" + str("%0.4d" % (t * 100)) + ".png")
         plt.clf()
         plt.close("all")
 
     # get dt
     dt = min(
-        0.9 * dx ** 2 / 4 / nu,
+        0.9 * dx**2 / 4 / nu,
         LCFL / (np.amax(np.fabs(vorticity)) + eps),
         0.01 * freqTimer_limit,
     )
 
-    
     # integrate averaged fields
     avg_psi[...] += psi * dt
-
 
     # penalise velocity (particle)
     u_z_upen[...] = u_z.copy()
     u_r_upen[...] = u_r.copy()
-    brinkmann_penalize(
-        brink_lam, dt, char_func, 0.0, 0.0, u_z_upen, u_r_upen, u_z, u_r
-    )
+    brinkmann_penalize(brink_lam, dt, char_func, 0.0, 0.0, u_z_upen, u_r_upen, u_z, u_r)
     compute_vorticity_from_velocity_unb(
         penal_vorticity, u_z - u_z_upen, u_r - u_r_upen, dx
     )
     vorticity[...] += penal_vorticity
-    Cd =  2*2 * np.pi * dx * dx * brink_lam * np.sum(R*char_func * (u_z))/ (np.pi*r_cyl**2) #(Cd = F/0.5*p*U^2*A^2)
+    Cd = (
+        2
+        * 2
+        * np.pi
+        * dx
+        * dx
+        * brink_lam
+        * np.sum(R * char_func * (u_z))
+        / (np.pi * r_cyl**2)
+    )  # (Cd = F/0.5*p*U^2*A^2)
 
     advect_vorticity_via_particles(
-        z_particles, r_particles, vort_particles, vorticity, Z_double, R_double, grid_size_r, u_z, u_r, dx, dt
-        )
+        z_particles,
+        r_particles,
+        vort_particles,
+        vorticity,
+        Z_double,
+        R_double,
+        grid_size_r,
+        u_z,
+        u_r,
+        dx,
+        dt,
+    )
 
     # diffuse vorticity
     diffusion_RK2_unb(vorticity, temp_vorticity, R, nu, dt, dx)

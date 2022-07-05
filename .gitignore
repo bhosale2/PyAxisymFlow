@@ -130,3 +130,7 @@ dmypy.json
 
 # MacOS files
 .DS_Store
+
+# video and images
+.mp4
+.png
