@@ -81,7 +81,7 @@ char_func = 0 * Z
 smooth_Heaviside(char_func, phi0, moll_zone)
 part_mass = np.sum(char_func * R)
 
-FD_stokes_solver = FastDiagonalisationStokesSolver(grid_size_r, grid_size_z, dx, bc_type= "homogenous_neumann_along_r_and_periodic_along_z")
+FD_stokes_solver = FastDiagonalisationStokesSolver(grid_size_r, grid_size_z-2*ghost_size, dx, bc_type= "homogenous_neumann_along_r_and_periodic_along_z")
 vtk_image_data, temp_vtk_array, writer = vtk_init()
 
 # solver loop
@@ -93,7 +93,10 @@ while t < tEnd:
    
 
     # solve for stream function and get velocity
-    FD_stokes_solver.solve(solution_field=psi, rhs_field=vorticity)
+    psi_l = psi[:,ghost_size:-ghost_size].copy()
+    FD_stokes_solver.solve(solution_field=psi_l, rhs_field=vorticity[:,ghost_size:-ghost_size])
+    psi[:,ghost_size:-ghost_size] = psi_l
+
     compute_velocity_from_psi_unb_periodic(u_z, u_r, psi, R, dx, per_communicator)
     
     # add free stream
@@ -112,18 +115,18 @@ while t < tEnd:
         fotoTimer = 0.0
         levels = np.linspace(-0.1, 0.1, 25)
         plt.contourf(
-            Z[ghost_size:-ghost_size],
-            R[ghost_size:-ghost_size],
-            vorticity[ghost_size:-ghost_size],
+            Z,
+            R,
+            vorticity,
             levels=100,
             extend="both",
             cmap=lab_cmp,
         )
 
         plt.contour(
-            Z[ghost_size:-ghost_size],
-            R[ghost_size:-ghost_size],
-            u_z[ghost_size:-ghost_size],
+            Z,
+            R,
+            u_z,
             levels=[
                 0.0,
             ],
@@ -131,9 +134,9 @@ while t < tEnd:
         )
 
         plt.contour(
-            Z[ghost_size:-ghost_size],
-            R[ghost_size:-ghost_size],
-            char_func[ghost_size:-ghost_size],
+            Z,
+            R,
+            char_func,
             levels=[
                 0.5,
             ],
