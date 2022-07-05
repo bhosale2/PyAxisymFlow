@@ -92,7 +92,6 @@ while t < tEnd:
 
     # kill vorticity at boundaries
     kill_boundary_vorticity_sine_r(vorticity, R, 3, dx)
-   
 
     # solve for stream function and get velocity
     psi_l = psi[:,ghost_size:-ghost_size].copy()
