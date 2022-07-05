@@ -12,7 +12,6 @@ from kernels.brinkmann_penalize import brinkmann_penalize
 from kernels.compute_velocity_from_psi import compute_velocity_from_psi_unb
 from kernels.compute_vorticity_from_velocity import compute_vorticity_from_velocity_unb
 from kernels.advect_particle import advect_vorticity_via_particles
-from kernels.compute_forces import compute_force_on_body
 from kernels.smooth_Heaviside import smooth_Heaviside
 from kernels.kill_boundary_vorticity_sine import (
     kill_boundary_vorticity_sine_r,
@@ -26,7 +25,7 @@ plt.figure(figsize=(5 / domain_AR, 5))
 # Parameters
 fotoTimer_limit = 0.1
 brink_lam = 1e4
-moll_zone = dx * 2 ** 0.5
+moll_zone = dx * 2**0.5
 r_cyl = 0.075
 freq = 16
 freqTimer_limit = 1 / freq
@@ -120,7 +119,7 @@ while t < tEnd:
             bbox_inches="tight",
             pad_inches=0,
             dpi=300,
-        )       
+        )
         vtk_write(
             "axisym_avg_" + str("%0.4d" % (t * 100)) + ".vti",
             vtk_image_data,
@@ -133,7 +132,7 @@ while t < tEnd:
 
     # get dt
     dt = min(
-        0.9 * dx ** 2 / 4 / nu,
+        0.9 * dx**2 / 4 / nu,
         LCFL / (np.amax(np.fabs(vorticity)) + eps),
         0.01 * freqTimer_limit,
     )
@@ -156,13 +155,33 @@ while t < tEnd:
     u_z_upen[...] = u_z.copy()
     u_r_upen[...] = u_r.copy()
     brinkmann_penalize(
-        brink_lam, dt, char_func, U_0 * np.cos(omega * t), 0.0, u_z_upen, u_r_upen, u_z, u_r
+        brink_lam,
+        dt,
+        char_func,
+        U_0 * np.cos(omega * t),
+        0.0,
+        u_z_upen,
+        u_r_upen,
+        u_z,
+        u_r,
     )
-    compute_vorticity_from_velocity_unb(penal_vorticity, -u_z_upen +u_z, -u_r_upen + u_r, dx)
+    compute_vorticity_from_velocity_unb(
+        penal_vorticity, -u_z_upen + u_z, -u_r_upen + u_r, dx
+    )
     vorticity[...] += penal_vorticity
 
     advect_vorticity_via_particles(
-        z_particles, r_particles, vort_particles, vorticity, Z_double, R_double, grid_size_r, u_z, u_r, dx, dt
+        z_particles,
+        r_particles,
+        vort_particles,
+        vorticity,
+        Z_double,
+        R_double,
+        grid_size_r,
+        u_z,
+        u_r,
+        dx,
+        dt,
     )
 
     # diffuse vorticity
@@ -174,7 +193,7 @@ while t < tEnd:
     it += 1
     freqTimer = freqTimer + dt
     if it % 50 == 0:
-        print(f"time: {t}, max vort: {np.amax(vorticity)})
+        print(f"time: {t}, max vort: {np.amax(vorticity)}")
 
 
 os.system("rm -f 2D_advect.mp4")

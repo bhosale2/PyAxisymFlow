@@ -25,19 +25,19 @@ plotset()
 plt.figure(figsize=(5 / domain_AR, 5))
 # Parameters
 brink_lam = 1e12
-moll_zone = np.sqrt(2) * dx 
+moll_zone = np.sqrt(2) * dx
 freq = 8.0
 freqTimer_limit = 1 / freq
 omega = 2 * np.pi * freq
-lambda_part = 20.0# r_part ** 2 * omega / 3 / nu
+lambda_part = 20.0  # r_part ** 2 * omega / 3 / nu
 r0_bubble = 0.25
 r_part = 0.2 * r0_bubble
-nu = r_part ** 2 * omega / 3.0 / lambda_part
+nu = r_part**2 * omega / 3.0 / lambda_part
 rho_f = 1.0
 e = 0.01
 U_0 = e * r0_bubble * omega
 no_cycles = 220
-rho_s = 1*rho_f
+rho_s = 1 * rho_f
 
 # Build discrete domain
 z = np.linspace(0 + dx / 2, 1 - dx / 2, grid_size_z)
@@ -72,8 +72,8 @@ avg_vort = 0 * Z
 avg_part_char_func = 0 * Z
 u_z = 0 * Z
 u_r = 0 * Z
-u_z_old =  0 * Z
-u_r_old =  0 * Z
+u_z_old = 0 * Z
+u_r_old = 0 * Z
 u_z_upen = 0 * Z
 u_r_upen = 0 * Z
 inside_bubble = 0 * Z
@@ -111,8 +111,8 @@ M_proj = 0.0
 M_proj_old = 0.0
 
 old_dt = min(
-    0.9 * dx ** 2 / 4 / nu,
-    LCFL / (np.amax(np.sqrt(u_r ** 2 + u_z ** 2)) + eps),
+    0.9 * dx**2 / 4 / nu,
+    LCFL / (np.amax(np.sqrt(u_r**2 + u_z**2)) + eps),
     0.01 * freqTimer_limit,
 )
 
@@ -122,7 +122,7 @@ neg_flux = 0 * Z
 mid_vorticity = 0 * Z
 T_n = 0
 T_o = 0
-diff=0
+diff = 0
 # solver loop
 
 # restart load
@@ -132,11 +132,11 @@ if os.path.exists("restart.npz"):
     vorticity[...] = restart["vorticity"]
     part_phi[...] = restart["part_phi"]
     T = restart["T"]
-    U_z_cm_part_old  = float(restart["U_z_cm_part_old"])
+    U_z_cm_part_old = float(restart["U_z_cm_part_old"])
     U_z_cm_part = float(restart["U_z_cm_part"])
     F_pen = float(restart["F_pen"])
     F_un = float(restart["F_un"])
-    part_Z_cm_new  = float(restart["part_Z_cm_new"])
+    part_Z_cm_new = float(restart["part_Z_cm_new"])
     part_Z_cm = float(restart["part_Z_cm"])
     part_Z_cm_old = float(restart["part_Z_cm_old"])
     part_trajectory = restart["part_trajectory"]
@@ -147,7 +147,7 @@ if os.path.exists("restart.npz"):
     avg_time = float(restart["avg_time"])
     cycle_time = float(restart["cycle_time"])
     diff = float(restart["diff"])
-    #print(t, part_Z_cm)
+    # print(t, part_Z_cm)
 else:
     F_un = 0
     F_pen = 0.0
@@ -156,8 +156,8 @@ else:
     t = 0.0
     T = []
 
-    #print(f"Restarting at t = {t}")
-tEnd =  (no_cycles / freq)
+    # print(f"Restarting at t = {t}")
+tEnd = no_cycles / freq
 while t < tEnd:
     # kill vorticity at boundaries
     kill_boundary_vorticity_sine_z(vorticity, Z, 3, dx)
@@ -179,7 +179,7 @@ while t < tEnd:
             extend="both",
             cmap=lab_cmp,
         )
-        #plt.colorbar()
+        # plt.colorbar()
         plt.contour(
             Z,
             R,
@@ -212,7 +212,7 @@ while t < tEnd:
             bbox_inches="tight",
             pad_inches=0,
             dpi=300,
-        )       
+        )
         plt.clf()
         plt.close("all")
         vtk_write(
@@ -220,37 +220,41 @@ while t < tEnd:
             vtk_image_data,
             temp_vtk_array,
             writer,
-            ["avg_part_char_func", "avg_psi", "avg_vort","u_z","u_r","avg_psi"],
+            ["avg_part_char_func", "avg_psi", "avg_vort", "u_z", "u_r", "avg_psi"],
             [avg_part_char_func, avg_psi, avg_vort, u_z, u_r, avg_psi],
         )
-        
-        avg_T = np.append(avg_T, (avg_time / cycle_time))
-        avg_part_trajectory = np.append(avg_part_trajectory, (avg_Z_cm / cycle_time - bubble_Z_cm) / r0_bubble)
-        cycle_end_part_trajectory = np.append(cycle_end_part_trajectory, (part_Z_cm - bubble_Z_cm) / r0_bubble)
 
-    # get dt
+        avg_T = np.append(avg_T, (avg_time / cycle_time))
+        avg_part_trajectory = np.append(
+            avg_part_trajectory, (avg_Z_cm / cycle_time - bubble_Z_cm) / r0_bubble
+        )
+        cycle_end_part_trajectory = np.append(
+            cycle_end_part_trajectory, (part_Z_cm - bubble_Z_cm) / r0_bubble
+        )
+
+        # get dt
         np.savez(
-                "restart.npz",
-                t=t,
-                vorticity=vorticity,
-                part_phi=part_phi,
-                T=T,
-                U_z_cm_part_old = U_z_cm_part_old,
-                U_z_cm_part = U_z_cm_part,
-                F_pen = F_pen,
-                F_un = F_un,
-                part_Z_cm_new = part_Z_cm_new,
-                part_Z_cm = part_Z_cm,
-                part_Z_cm_old = part_Z_cm_old,
-                part_trajectory = part_trajectory,
-                avg_T = avg_T,
-                avg_part_trajectory = avg_part_trajectory,
-                cycle_end_part_trajectory = cycle_end_part_trajectory,
-                avg_Z_cm = avg_Z_cm,
-                avg_time = avg_time,
-                cycle_time = cycle_time,
-                diff = diff,
-            )
+            "restart.npz",
+            t=t,
+            vorticity=vorticity,
+            part_phi=part_phi,
+            T=T,
+            U_z_cm_part_old=U_z_cm_part_old,
+            U_z_cm_part=U_z_cm_part,
+            F_pen=F_pen,
+            F_un=F_un,
+            part_Z_cm_new=part_Z_cm_new,
+            part_Z_cm=part_Z_cm,
+            part_Z_cm_old=part_Z_cm_old,
+            part_trajectory=part_trajectory,
+            avg_T=avg_T,
+            avg_part_trajectory=avg_part_trajectory,
+            cycle_end_part_trajectory=cycle_end_part_trajectory,
+            avg_Z_cm=avg_Z_cm,
+            avg_time=avg_time,
+            cycle_time=cycle_time,
+            diff=diff,
+        )
 
         avg_part_char_func[...] *= 0.0
         avg_psi[...] *= 0.0
@@ -260,7 +264,7 @@ while t < tEnd:
         cycle_time = 0.0
 
     dt = min(
-        0.9 * dx ** 2 / 4 / nu,
+        0.9 * dx**2 / 4 / nu,
         # LCFL / (np.amax(np.sqrt(u_r ** 2 + u_z ** 2)) + eps),
         LCFL / (np.amax(np.fabs(vorticity)) + eps),
         0.01 * freqTimer_limit,
@@ -278,7 +282,7 @@ while t < tEnd:
         * U_0
         * (Z - bubble_Z_cm)
         * np.sin(omega * t)
-        * r0_bubble ** 2
+        * r0_bubble**2
         / ((Z - bubble_Z_cm) ** 2 + (R - bubble_R_cm) ** 2) ** 1.5
     )
     u_r[...] += (
@@ -286,7 +290,7 @@ while t < tEnd:
         * U_0
         * (R - bubble_R_cm)
         * np.sin(omega * t)
-        * r0_bubble ** 2
+        * r0_bubble**2
         / ((Z - bubble_Z_cm) ** 2 + (R - bubble_R_cm) ** 2) ** 1.5
     )
 
@@ -300,7 +304,7 @@ while t < tEnd:
 
     # record particle location
     T = np.append(T, t)
-    part_trajectory = np.append(part_trajectory,(part_Z_cm - bubble_Z_cm) / r0_bubble)
+    part_trajectory = np.append(part_trajectory, (part_Z_cm - bubble_Z_cm) / r0_bubble)
     # set body velocity fields
     part_phi[...] = -np.sqrt((Z - part_Z_cm) ** 2 + (R - part_R_cm) ** 2) + r_part
     part_char_func *= 0
@@ -315,24 +319,36 @@ while t < tEnd:
     compute_vorticity_from_velocity_unb(
         penal_vorticity, u_z - u_z_upen, u_r - u_r_upen, dx
     )
-    vorticity[...] += penal_vorticity 
+    vorticity[...] += penal_vorticity
 
-    F_pen,F_un = compute_force_on_body(R, part_char_func, rho_f, brink_lam, u_z, U_z_cm_part, part_vol, dt, diff)
-    F_total = F_pen+F_un
+    F_pen, F_un = compute_force_on_body(
+        R, part_char_func, rho_f, brink_lam, u_z, U_z_cm_part, part_vol, dt, diff
+    )
+    F_total = F_pen + F_un
     # particle based vorticity advection
     advect_vorticity_via_particles(
-        z_particles, r_particles, vort_particles, vorticity, Z_double, R_double, grid_size_r, u_z, u_r, dx, dt
-        )
+        z_particles,
+        r_particles,
+        vort_particles,
+        vorticity,
+        Z_double,
+        R_double,
+        grid_size_r,
+        u_z,
+        u_r,
+        dx,
+        dt,
+    )
 
     # diffuse vorticity
     diffusion_RK2_unb(vorticity, temp_vorticity, R, nu, dt, dx)
 
     # update particle location and velocity
     U_z_cm_part_old = U_z_cm_part
-    U_z_cm_part += 0.5*dt*(diff/dt+ ((F_total) / part_mass))
-    diff= dt * (F_total) / part_mass
+    U_z_cm_part += 0.5 * dt * (diff / dt + ((F_total) / part_mass))
+    diff = dt * (F_total) / part_mass
     part_Z_cm_new = part_Z_cm
-    part_Z_cm +=  U_z_cm_part_old*dt + (0.5*dt*dt*(F_total)/ part_mass)
+    part_Z_cm += U_z_cm_part_old * dt + (0.5 * dt * dt * (F_total) / part_mass)
     part_Z_cm_old = part_Z_cm_new
 
     t += dt
@@ -340,9 +356,8 @@ while t < tEnd:
     freqTimer += dt
     it += 1
     if it % 100 == 0:
-       print(t, np.amax(vorticity), part_Z_cm)
-        
-    
+        print(t, np.amax(vorticity), part_Z_cm)
+
 
 np.savetxt(
     "trajectory.csv",

@@ -18,15 +18,18 @@ from kernels.kill_boundary_vorticity_sine import (
 from kernels.FastDiagonalisationStokesSolver import FastDiagonalisationStokesSolver
 from kernels.periodic_boundary_ghost_comm import gen_periodic_boundary_ghost_comm
 from kernels.compute_velocity_from_psi import compute_velocity_from_psi_unb_periodic
-from kernels.compute_vorticity_from_velocity import compute_vorticity_from_velocity_unb_periodic
+from kernels.compute_vorticity_from_velocity import (
+    compute_vorticity_from_velocity_unb_periodic,
+)
 from kernels.advect_particle import advect_vorticity_via_particles_periodic
 from kernels.diffusion_RK2 import diffusion_RK2_periodic
+
 plotset()
 plt.figure(figsize=(5 / domain_AR, 5))
 # Parameters
 fotoTimer_limit = 0.1
 brink_lam = 1e12
-moll_zone = dx * 2 ** 0.5
+moll_zone = dx * 2**0.5
 r_cyl = 0.075
 U_0 = 1.0
 Re = 100.0
@@ -53,8 +56,8 @@ avg_vort = 0 * Z
 avg_part_char_func = 0 * Z
 u_z = 0 * Z
 u_r = 0 * Z
-u_z_old =  0 * Z
-u_r_old =  0 * Z
+u_z_old = 0 * Z
+u_r_old = 0 * Z
 u_z_upen = 0 * Z
 u_r_upen = 0 * Z
 inside_bubble = 0 * Z
@@ -84,24 +87,30 @@ part_mass = np.sum(char_func * R)
 
 # solving poisson only on the inner grid
 psi_inner = psi[..., ghost_size:-ghost_size].copy()
-FD_stokes_solver = FastDiagonalisationStokesSolver(grid_size_r, grid_size_z-2*ghost_size, dx, bc_type= "homogenous_neumann_along_r_and_periodic_along_z")
+FD_stokes_solver = FastDiagonalisationStokesSolver(
+    grid_size_r,
+    grid_size_z - 2 * ghost_size,
+    dx,
+    bc_type="homogenous_neumann_along_r_and_periodic_along_z",
+)
 vtk_image_data, temp_vtk_array, writer = vtk_init()
 
 # solver loop
 while t < tEnd:
 
     # kill vorticity at boundaries
-    #kill_boundary_vorticity_sine_z(vorticity, Z, 3, dx)
+    # kill_boundary_vorticity_sine_z(vorticity, Z, 3, dx)
     kill_boundary_vorticity_sine_r(vorticity, R, 3, dx)
-   
 
     # solve for stream function and get velocity
     psi_inner[...] = psi[..., ghost_size:-ghost_size]
-    FD_stokes_solver.solve(solution_field=psi_inner, rhs_field=vorticity[:,ghost_size:-ghost_size])
+    FD_stokes_solver.solve(
+        solution_field=psi_inner, rhs_field=vorticity[:, ghost_size:-ghost_size]
+    )
     psi[..., ghost_size:-ghost_size] = psi_inner
 
     compute_velocity_from_psi_unb_periodic(u_z, u_r, psi, R, dx, per_communicator)
-    
+
     # add free stream
     prefac_x = 1.0
     prefac_y = 0.0
@@ -110,7 +119,6 @@ while t < tEnd:
         prefac_y = 5e-2 * np.sin(np.pi * t / T_ramp)
     u_z[...] += U_0 * prefac_x
     u_r[...] += U_0 * prefac_y
-
 
     if fotoTimer >= fotoTimer_limit or t == 0:
         fotoTimer = 0.0
@@ -149,13 +157,13 @@ while t < tEnd:
         plt.xticks([])
         plt.yticks([])
         plt.gca().set_aspect("equal")
-        plt.savefig("snap_" + str("%0.4d" % (t * 100)) + ".png") 
+        plt.savefig("snap_" + str("%0.4d" % (t * 100)) + ".png")
         plt.clf()
         plt.close("all")
 
     # get dt
     dt = min(
-        0.9 * dx ** 2 / 4 / nu,
+        0.9 * dx**2 / 4 / nu,
         LCFL / (np.amax(np.fabs(vorticity)) + eps),
         0.01 * freqTimer_limit,
     )
@@ -163,17 +171,25 @@ while t < tEnd:
     # penalise velocity (particle)
     u_z_upen[...] = u_z.copy()
     u_r_upen[...] = u_r.copy()
-    brinkmann_penalize(
-        brink_lam, dt, char_func, 0.0, 0.0, u_z_upen, u_r_upen, u_z, u_r
-    )
+    brinkmann_penalize(brink_lam, dt, char_func, 0.0, 0.0, u_z_upen, u_r_upen, u_z, u_r)
     compute_vorticity_from_velocity_unb_periodic(
         penal_vorticity, u_z - u_z_upen, u_r - u_r_upen, dx, per_communicator
     )
     vorticity[...] += penal_vorticity
 
     advect_vorticity_via_particles_periodic(
-        z_particles, r_particles, vort_particles, vorticity, Z_double, R_double, grid_size_r, u_z, u_r, dx, dt
-        )
+        z_particles,
+        r_particles,
+        vort_particles,
+        vorticity,
+        Z_double,
+        R_double,
+        grid_size_r,
+        u_z,
+        u_r,
+        dx,
+        dt,
+    )
 
     # diffuse vorticity
     diffusion_RK2_periodic(vorticity, temp_vorticity, R, nu, dt, dx, per_communicator)

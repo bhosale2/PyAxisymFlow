@@ -11,17 +11,17 @@ def stokes_phi_init(R):
     = divg
     """
     R_diag = spp.diags(
-        (R ** -1).reshape(
+        (R**-1).reshape(
             -1,
         ),
         format="csc",
     )
     FDM_zz = spp.diags(
         [1, -2, 1], [-1, 0, 1], shape=(grid_size_z, grid_size_z), format="csc"
-    ) / (dx ** 2)
+    ) / (dx**2)
     FDM_rr = spp.diags(
         [1, -2, 1], [-1, 0, 1], shape=(grid_size_r, grid_size_r), format="csc"
-    ) / (dx ** 2)
+    ) / (dx**2)
 
     # neumann along Z
     FDM_zz[0, 1] *= 2.0
@@ -51,7 +51,7 @@ def stokes_phi_init(R):
     Id3[0, 0] = 0.0
     FDM_final = mask_Id * (
         spp.kron(FDM_rr, Id_z) + spp.kron(Id3, FDM_zz) + R_diag * spp.kron(FDM_r, Id_z)
-    ) + unmask_Id / (dx ** 2)
+    ) + unmask_Id / (dx**2)
 
     M2 = sppla.spilu(FDM_final)
     M = sppla.LinearOperator(

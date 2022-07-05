@@ -1,7 +1,7 @@
 import numpy as np
 
 
-def zalesak_disc_LS(X, Y, x_cm, y_cm , R, s, offset):
+def zalesak_disc_LS(X, Y, x_cm, y_cm, R, s, offset):
     """
     returns the indicator for a Zalesak disc with:
     x_cm, y_cm: centre of the circle

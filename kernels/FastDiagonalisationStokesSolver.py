@@ -5,23 +5,29 @@ import scipy.sparse as spp
 
 class FastDiagonalisationStokesSolver:
     def __init__(
-            self,
-            grid_size_r,
-            grid_size_z,
-            dx,
-            real_dtype=np.float64,
-            bc_type="homogenous_neumann_along_z_and_r",
+        self,
+        grid_size_r,
+        grid_size_z,
+        dx,
+        real_dtype=np.float64,
+        bc_type="homogenous_neumann_along_z_and_r",
     ):
         self.dx = dx
         self.grid_size_r = grid_size_r
         self.grid_size_z = grid_size_z
         self.real_dtype = real_dtype
         self.bc_type = bc_type
-        self.radial_coord = np.linspace(dx / 2,
-                                        grid_size_r * dx - dx / 2,
-                                        grid_size_r).astype(real_dtype).reshape(grid_size_r, 1)
+        self.radial_coord = (
+            np.linspace(dx / 2, grid_size_r * dx - dx / 2, grid_size_r)
+            .astype(real_dtype)
+            .reshape(grid_size_r, 1)
+        )
 
-        poisson_matrix_z, poisson_matrix_r, derivative_matrix_r = self.construct_fdm_matrices()
+        (
+            poisson_matrix_z,
+            poisson_matrix_r,
+            derivative_matrix_r,
+        ) = self.construct_fdm_matrices()
         self.apply_boundary_conds_to_poisson_matrices(
             poisson_matrix_z, poisson_matrix_r, derivative_matrix_r
         )
@@ -53,16 +59,18 @@ class FastDiagonalisationStokesSolver:
         )
         poisson_matrix_r = poisson_matrix_r.toarray().astype(self.real_dtype)
         derivative_matrix_r = inv_2dx * spp.diags(
-            [1, -1], [-1, 1],
-            shape=(self.grid_size_r, self.grid_size_r),
-            format="csr")
+            [1, -1], [-1, 1], shape=(self.grid_size_r, self.grid_size_r), format="csr"
+        )
         derivative_matrix_r = derivative_matrix_r.toarray().astype(self.real_dtype)
         derivative_matrix_r[...] = derivative_matrix_r / self.radial_coord
 
         return poisson_matrix_z, poisson_matrix_r, derivative_matrix_r
 
     def apply_boundary_conds_to_poisson_matrices(
-            self, poisson_matrix_z, poisson_matrix_r, derivative_matrix_r,
+        self,
+        poisson_matrix_z,
+        poisson_matrix_r,
+        derivative_matrix_r,
     ):
         """
         Apply boundary conditions to matrices
@@ -77,7 +85,7 @@ class FastDiagonalisationStokesSolver:
             # neumann at R_max
             derivative_matrix_r[-1, -2] = 0
 
-        elif self.bc_type == "homogenous_neumann_along_r_and_periodic_along_z":           
+        elif self.bc_type == "homogenous_neumann_along_r_and_periodic_along_z":
             poisson_matrix_z[0, -1] = poisson_matrix_z[0, 1]
             poisson_matrix_z[-1, 0] = poisson_matrix_z[-1, -2]
             poisson_matrix_r[-1, -1] = inv_dx2
@@ -85,7 +93,10 @@ class FastDiagonalisationStokesSolver:
             derivative_matrix_r[-1, -2] = 0
 
     def compute_spectral_decomp_of_poisson_matrices(
-            self, poisson_matrix_z, poisson_matrix_r, derivative_matrix_r,
+        self,
+        poisson_matrix_z,
+        poisson_matrix_r,
+        derivative_matrix_r,
     ):
         """
         Compute spectral decomposition (eigenvalue and vectors) of the
@@ -120,7 +131,11 @@ class FastDiagonalisationStokesSolver:
         """
         # transform to spectral space ("forward transform")
         la.multi_dot(
-            [self.inv_of_eig_vecs_r, (rhs_field * self.radial_coord), self.tranpose_of_inv_of_eig_vecs_z],
+            [
+                self.inv_of_eig_vecs_r,
+                (rhs_field * self.radial_coord),
+                self.tranpose_of_inv_of_eig_vecs_z,
+            ],
             out=self.spectral_field_buffer,
         )
 
