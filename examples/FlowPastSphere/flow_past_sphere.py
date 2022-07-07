@@ -4,22 +4,28 @@ import sys
 import os
 
 sys.path.append("../../")
-from set_sim_params import grid_size_z, grid_size_r, dx, eps, LCFL, domain_AR
+from set_sim_params import (
+    grid_size_z,
+    grid_size_r,
+    dx,
+    eps,
+    LCFL,
+    domain_AR,
+    num_threads,
+)
 from utils.plotset import plotset
 from utils.custom_cmap import lab_cmp
-from utils.dump_vtk import vtk_init, vtk_write
 from kernels.brinkmann_penalize import brinkmann_penalize
 from kernels.compute_velocity_from_psi import compute_velocity_from_psi_unb
 from kernels.compute_vorticity_from_velocity import compute_vorticity_from_velocity_unb
-from kernels.advect_particle import advect_vorticity_via_particles
-from kernels.compute_forces import compute_force_on_body
 from kernels.smooth_Heaviside import smooth_Heaviside
 from kernels.kill_boundary_vorticity_sine import (
     kill_boundary_vorticity_sine_r,
     kill_boundary_vorticity_sine_z,
 )
-from kernels.diffusion_RK2_unb import diffusion_RK2_unb
+from kernels.diffusion_RK2 import diffusion_RK2_unb
 from kernels.FastDiagonalisationStokesSolver import FastDiagonalisationStokesSolver
+from kernels.advect_vorticity_via_eno3 import gen_advect_vorticity_via_eno3
 
 plotset()
 plt.figure(figsize=(5 / domain_AR, 5))
@@ -45,48 +51,26 @@ vorticity = 0 * Z
 penal_vorticity = 0 * Z
 temp_vorticity = 0 * Z
 psi = 0 * Z
-avg_psi = 0 * Z
-avg_vort = 0 * Z
-avg_part_char_func = 0 * Z
 u_z = 0 * Z
 u_r = 0 * Z
-u_z_old = 0 * Z
-u_r_old = 0 * Z
 u_z_upen = 0 * Z
 u_r_upen = 0 * Z
-inside_bubble = 0 * Z
-u_z_breath = 0 * Z
-u_r_breath = 0 * Z
-Z_double, R_double = np.meshgrid(z, z)
-z_particles = Z_double.copy()
-r_particles = R_double.copy()
-vort_double = 0 * Z_double
-vort_particles = 0 * vort_double
-Z_double, R_double = np.meshgrid(z, z)
-z_particles = Z_double.copy()
-r_particles = R_double.copy()
-vort_double = 0 * Z_double
-vort_particles = 0 * vort_double
 
 fotoTimer = 0.0
 it = 0
-freqTimer = 0.0
-freq = 8.0
-freqTimer_limit = 1 / freq
 Z_cm = 0.25
 R_cm = 0.0
 t = 0.0
 T = []
-diff = 0
-F_total = 0
 #  create char function
 phi0 = -np.sqrt((Z - Z_cm) ** 2 + (R - R_cm) ** 2) + r_cyl
 char_func = 0 * Z
 smooth_Heaviside(char_func, phi0, moll_zone)
-part_mass = np.sum(char_func * R)
 
 FD_stokes_solver = FastDiagonalisationStokesSolver(grid_size_r, grid_size_z, dx)
-vtk_image_data, temp_vtk_array, writer = vtk_init()
+advect_vorticity_via_eno3 = gen_advect_vorticity_via_eno3(
+    dx, grid_size_r, grid_size_z, num_threads=num_threads
+)
 
 # solver loop
 while t < tEnd:
@@ -101,16 +85,11 @@ while t < tEnd:
 
     # add free stream
     prefac_x = 1.0
-    prefac_y = 0.0
     if t < T_ramp:
         prefac_x = np.sin(0.5 * np.pi * t / T_ramp)
-        prefac_y = 5e-2 * np.sin(np.pi * t / T_ramp)
     u_z[...] += U_0 * prefac_x
-    u_r[...] += U_0 * prefac_y
 
     if fotoTimer >= fotoTimer_limit or t == 0:
-        fotoTimer = 0.0
-
         fotoTimer = 0.0
         levels = np.linspace(-0.1, 0.1, 25)
         plt.contourf(
@@ -153,11 +132,7 @@ while t < tEnd:
     dt = min(
         0.9 * dx**2 / 4 / nu,
         LCFL / (np.amax(np.fabs(vorticity)) + eps),
-        0.01 * freqTimer_limit,
     )
-
-    # integrate averaged fields
-    avg_psi[...] += psi * dt
 
     # penalise velocity (particle)
     u_z_upen[...] = u_z.copy()
@@ -178,19 +153,7 @@ while t < tEnd:
         / (np.pi * r_cyl**2)
     )  # (Cd = F/0.5*p*U^2*A^2)
 
-    advect_vorticity_via_particles(
-        z_particles,
-        r_particles,
-        vort_particles,
-        vorticity,
-        Z_double,
-        R_double,
-        grid_size_r,
-        u_z,
-        u_r,
-        dx,
-        dt,
-    )
+    advect_vorticity_via_eno3(vorticity, u_z, u_r, dt)
 
     # diffuse vorticity
     diffusion_RK2_unb(vorticity, temp_vorticity, R, nu, dt, dx)
@@ -199,7 +162,6 @@ while t < tEnd:
     t += dt
     fotoTimer += dt
     it += 1
-    freqTimer = freqTimer + dt
     if it % 50 == 0:
         print(f"time: {t}, max vort: {np.amax(vorticity)}, drag coeff: {Cd}")
 
