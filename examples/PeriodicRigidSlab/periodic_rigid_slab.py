@@ -114,7 +114,7 @@ while t < tEnd:
         fotoTimer = 0.0
         levels = np.linspace(-0.1, 0.1, 25)
         plt.plot(R[:,int(grid_size_z/2)],u_z[:,int(grid_size_z/2)])
-        plt.plot(y_range, theory_axisymmetric_rigid_slab_temporal(U_0, Soln, omega,t))
+        plt.plot(y_range, theory_axisymmetric_rigid_slab_temporal(U_0, spatial_soln, omega,t))
         plt.legend(['Simulations', 'Theory'])
         plt.savefig("snap_" + str("%0.4d" % (t * 100)) + ".png") 
         plt.clf()
