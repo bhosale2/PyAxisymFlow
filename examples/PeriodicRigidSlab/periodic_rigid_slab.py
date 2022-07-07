@@ -47,7 +47,7 @@ per_communicator = gen_periodic_boundary_ghost_comm(ghost_size)
 fotoTimer_limit = 0.1
 
 y_range=  np.linspace(0,R_tube,100)
-Soln = theory_axisymmetric_rigid_slab_spatial(omega,nu,R_tube)
+spatial_soln = theory_axisymmetric_rigid_slab_spatial(omega,nu,R_tube)
 
 # Build discrete domain
 z = np.linspace(0 + dx / 2, 1 - dx / 2, grid_size_z)
