@@ -12,6 +12,6 @@ def theory_axisymmetric_rigid_slab_spatial(omega,nu,R_tube):
 	Soln = soln_lam(y_range)
 	return Soln
 
-def theory_axisymmetric_rigid_slab_temporal(U_0, Soln, omega,t):
-	T_soln = U_0 *np.real(2*Soln*np.exp(-1j*omega*(t))) 
+def theory_axisymmetric_rigid_slab_temporal(U_0, spatial_soln, omega,t):
+	temp_soln = U_0 *np.real(2*spatial_soln*np.exp(-1j*omega*(t))) 
 	return T_soln
