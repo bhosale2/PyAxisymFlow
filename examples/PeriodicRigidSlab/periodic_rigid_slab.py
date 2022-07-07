@@ -23,7 +23,6 @@ from kernels.compute_vorticity_from_velocity import compute_vorticity_from_veloc
 from kernels.advect_particle import advect_vorticity_via_particles_periodic
 from kernels.diffusion_RK2 import diffusion_RK2_periodic
 from kernels.theory_rigid_slab import *
-#plotset()
 plt.figure(figsize=(5 / domain_AR, 5))
 # Parameters
 brink_lam = 1e4
