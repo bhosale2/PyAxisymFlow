@@ -4,8 +4,7 @@ import sys
 import skfmm
 import os
 
-# sys.path.append("../")
-sys.path.append("/Users/mattiagazzola/Desktop/comp_try/py_axisymflow")
+sys.path.append("../")
 from set_sim_params import grid_size_z, grid_size_r, dx, eps, LCFL, domain_AR
 from utils.plotset import plotset
 from utils.custom_cmap import lab_cmp
@@ -13,32 +12,29 @@ from utils.dump_vtk import vtk_init, vtk_write
 from kernels.brinkmann_penalize import brinkmann_penalize
 from kernels.compute_velocity_from_psi import compute_velocity_from_psi_unb
 from kernels.compute_vorticity_from_velocity import compute_vorticity_from_velocity_unb
-from kernels.diffusion_RK2_unb import diffusion_RK2_unb
 from kernels.smooth_Heaviside import smooth_Heaviside
 from kernels.kill_boundary_vorticity_sine import (
     kill_boundary_vorticity_sine_r,
     kill_boundary_vorticity_sine_z,
 )
-from kernels.vortex_stretching import vortex_stretching
-from kernels.advect_vorticity_CD2 import advect_vorticity_CD2
+from kernels.advect_particle import advect_vorticity_via_particles
 from kernels.FDM_stokes_psi_solve import (
     stokes_psi_init,
     stokes_psi_solve_LU,
 )
-from kernels.diffusion_RK2_unb import diffusion_RK2_unb
+from kernels.diffusion_RK2 import diffusion_RK2_unb
 import core.particles_to_mesh as p2m
 
 from kernels.advect_CD2_ENO import advect_CD2_ENO
 from elasto_kernels.div_tau import update_vorticity_from_solid_stress
-from elasto_kernels.extrapolate_using_least_squares import (
-    extrapolate_eta_using_least_squares,
-)
 from elasto_kernels.solid_sigma import solid_sigma
+#from elasto_kernels.update_advective_WENO5_cpp_euler import euler_2D_advective
+from elasto_kernels.update_upwind2 import update_upwind2
+from elasto_kernels.extrapolate_eta_using_least_squares_unb import extrapolate_eta_with_least_squares
 
-plotset()
+
 plt.figure(figsize=(5 / domain_AR, 5))
 # Parameters
-brink_lam = 1e4
 moll_zone = dx * 2
 extrap_zone = moll_zone + 4 * dx
 reinit_band = extrap_zone
@@ -85,7 +81,10 @@ eta1 = Z.copy()
 eta2 = R.copy()
 eta1_double = Z_double.copy()
 eta2_double = R_double.copy()
+u_z_double = R_double.copy()
+u_r_double = R_double.copy()
 ball_phi_double = 0 * Z_double
+
 kz = 2 * np.pi
 kr = kz
 C = 5e-2
@@ -106,6 +105,7 @@ bad_phi = 0 * Z
 phi_orig = 0 * Z
 temp_gradient = 0 * Z
 total_flux = 0 * Z
+total_flux_double = 0 * R_double
 sigma_s_11 = 0 * Z
 sigma_s_12 = 0 * Z
 sigma_s_22 = 0 * Z
@@ -126,13 +126,11 @@ while t < tEnd:
     # solve for stream function and get velocity
     stokes_psi_solve_LU(psi, LU_decomp_psi, vorticity, R)
     compute_velocity_from_psi_unb(u_z, u_r, psi, R, dx)
-    # u_z[...] -= 0.1
 
     # plotting!!
     if freqTimer >= freqTimer_limit:
         freqTimer = 0.0
-        plt.contour(Z, R, -psi, levels=10, extend="both", cmap="Greys")
-        plt.contourf(Z, R, -psi, levels=50, extend="both", cmap=lab_cmp)
+        plt.contourf(Z, R, vorticity, levels=np.linspace(-25, 25, 25), extend="both", cmap=lab_cmp)
         plt.colorbar()
         plt.contour(Z, R, inside_solid * eta1, levels=20, cmap="Greens", linewidths=2)
         plt.contour(Z, R, inside_solid * eta2, levels=20, cmap="Purples", linewidths=2)
@@ -148,14 +146,6 @@ while t < tEnd:
         plt.gca().set_aspect("equal")
         plt.savefig("snap_" + str("%0.4d" % (t * 100)) + ".png")
         plt.clf()
-        # vtk_write(
-        #     "bubble_avg_" + str("%0.4d" % (t * 100)) + ".vti",
-        #     vtk_image_data,
-        #     temp_vtk_array,
-        #     writer,
-        #     ["avg_part_char_func", "avg_psi", "avg_vort"],
-        #     [avg_part_char_func, avg_psi, avg_vort],
-        # )
 
     # get dt
     dt = min(
@@ -171,32 +161,12 @@ while t < tEnd:
     if t + dt > tEnd:
         dt = tEnd - t
 
-    # extrapolate eta for advection
-    # ball_phi_double[grid_size_r:, :] = -ball_phi
-    # eta1_double[grid_size_r:, :] = inside_solid * eta1
-    # eta2_double[grid_size_r:, :] = inside_solid * eta2
-    # ball_phi_double[:grid_size_r, :] = -np.flip(ball_phi, axis=0)
-    # eta1_double[:grid_size_r, :] = np.flip(inside_solid * eta1, axis=0)
-    # eta2_double[:grid_size_r, :] = -np.flip(inside_solid * eta2, axis=0)
-    # extrapolate_eta_using_least_squares(
-    #     ball_phi_double, 0, extrap_zone, eta1_double, eta2_double, z, z
-    # )
-    # eta1[...] = eta1_double[grid_size_r:, :]
-    # eta2[...] = eta2_double[grid_size_r:, :]
-
-    # advect refmap
     advect_CD2_ENO(
         eta1, u_z, u_r, temp_gradient, total_flux, pos_flux, neg_flux, dt, dx
     )
     advect_CD2_ENO(
         eta2, u_z, u_r, temp_gradient, total_flux, pos_flux, neg_flux, dt, dx
     )
-    # advect_CD2_ENO(
-    #     ball_phi, u_z, u_r, temp_gradient, total_flux, pos_flux, neg_flux, dt, dx
-    # )
-    # update_CD2_ENO_vec(eta1, u_z, u_r, temp_gradient, total_flux, pos_flux, neg_flux, dt, dx)
-    # update_CD2_ENO_vec(eta2, u_z, u_r, temp_gradient, total_flux, pos_flux, neg_flux, dt, dx)
-    # update_CD2_ENO_vec(ball_phi, u_z, u_r, temp_gradient, total_flux, pos_flux, neg_flux, dt, dx)
 
     # pin eta and phi boundary
     phi_orig[...] = -np.sqrt((eta1 - Z_cm) ** 2 + (eta2 - R_cm) ** 2) + r_ball
@@ -215,17 +185,17 @@ while t < tEnd:
     inside_solid[...] = ball_char_func > 0.5
 
     # extrapolate eta for stresses
-    ball_phi_double[grid_size_r:, :] = -ball_phi
-    eta1_double[grid_size_r:, :] = inside_solid * eta1
-    eta2_double[grid_size_r:, :] = inside_solid * eta2
-    ball_phi_double[:grid_size_r, :] = -np.flip(ball_phi, axis=0)
-    eta1_double[:grid_size_r, :] = np.flip(inside_solid * eta1, axis=0)
-    eta2_double[:grid_size_r, :] = -np.flip(inside_solid * eta2, axis=0)
-    extrapolate_eta_using_least_squares(
-        ball_phi_double, 0, extrap_zone, eta1_double, eta2_double, z, z
+    extrapolate_eta_with_least_squares(inside_solid,
+        ball_phi,
+        eta1,
+        eta2,
+        ball_phi_double,
+        eta1_double,
+        eta2_double,
+        extrap_zone,
+        grid_size_r,
+        z,
     )
-    eta1[...] = eta1_double[grid_size_r:, :]
-    eta2[...] = eta2_double[grid_size_r:, :]
 
     # compute solid stresses and blend
     solid_sigma(
@@ -248,43 +218,11 @@ while t < tEnd:
         vorticity, tau_z, tau_r, sigma_s_11, sigma_s_12, sigma_s_22, R, dt, dx
     )
 
-    # penalise velocity (ball)
-    # u_z_upen[...] = u_z.copy()
-    # u_r_upen[...] = u_r.copy()
-    # brinkmann_penalize(
-    #     brink_lam, dt, ball_char_func, 0.0, 0.0, u_z_upen, u_r_upen, u_z, u_r
-    # )
-    # compute_vorticity_from_velocity_unb(
-    #     penal_vorticity, u_z - u_z_upen, u_r - u_r_upen, dx
-    # )
-    # vorticity[...] += penal_vorticity
-
-    # stretching term
-    # vortex_stretching(vorticity, u_r, R, dt)
-
-    # FDM CD advection, usually unstable but works for low Re
-    # flux = temp_vorticity
-    # advect_vorticity_CD2(vorticity, flux, u_z, u_r, dt, dx)
-
     # advect particles
-    z_particles[grid_size_r:, :] += u_z * dt
-    z_particles[:grid_size_r, :] += np.flip(u_z, axis=0) * dt
-    r_particles[grid_size_r:, :] += u_r * dt
-    r_particles[:grid_size_r, :] += -np.flip(u_r, axis=0) * dt
-
-    # remesh
-    vort_particles[grid_size_r:, :] = vorticity
-    vort_particles[:grid_size_r, :] = -np.flip(vorticity, axis=0)
-    vort_double[...] *= 0
-    p2m.particles_to_mesh_2D_unbounded_mp4(
-        z_particles, r_particles, vort_particles, vort_double, dx, dx
+    advect_vorticity_via_particles(
+        z_particles, r_particles, vort_particles, vorticity, Z_double, R_double, grid_size_r, u_z, u_r, dx, dt
     )
-    z_particles[...] = Z_double
-    r_particles[...] = R_double
-    vorticity[...] = vort_double[grid_size_r:, :]
 
-    # correct conservative advection, cancels out with vortec stretching term
-    # vorticity[...] -= vorticity * dt * u_r / R
 
     # diffuse vorticity
     diffusion_RK2_unb(vorticity, temp_vorticity, R, nu, dt, dx)
