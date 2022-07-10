@@ -7,10 +7,10 @@ import sympy as sp
 
 
 def gen_elementwise_sum_pyst_kernel(
-        real_t=np.float64,
-        num_threads=False,
-        fixed_grid_size=False,
-        field_type="scalar",
+    real_t=np.float64,
+    num_threads=False,
+    fixed_grid_size=False,
+    field_type="scalar",
 ):
     # TODO expand docs
     """elementwise sum kernel generator."""
@@ -51,10 +51,10 @@ def gen_elementwise_sum_pyst_kernel(
 
 
 def gen_set_fixed_val_pyst_kernel(
-        real_t=np.float64,
-        num_threads=False,
-        fixed_grid_size=False,
-        field_type="scalar",
+    real_t=np.float64,
+    num_threads=False,
+    fixed_grid_size=False,
+    field_type="scalar",
 ):
     # TODO expand docs
     """2D set field to fixed value kernel generator."""
@@ -80,8 +80,8 @@ def gen_set_fixed_val_pyst_kernel(
     elif field_type == "vector":
 
         def vector_field_set_fixed_val_pyst_kernel(
-                vector_field,
-                fixed_vals,
+            vector_field,
+            fixed_vals,
         ):
             """Set vector field to fixed value.
 
