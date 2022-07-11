@@ -62,23 +62,10 @@ vorticity = 0 * Z
 penal_vorticity = 0 * Z
 temp_vorticity = 0 * Z
 psi = 0 * Z
-avg_psi = 0 * Z
-avg_vort = 0 * Z
-avg_part_char_func = 0 * Z
 u_z = 0 * Z
 u_r = 0 * Z
-u_z_old = 0 * Z
-u_r_old = 0 * Z
 u_z_upen = 0 * Z
 u_r_upen = 0 * Z
-inside_bubble = 0 * Z
-u_z_breath = 0 * Z
-u_r_breath = 0 * Z
-Z_double, R_double = np.meshgrid(z, z)
-z_particles = Z_double.copy()
-r_particles = R_double.copy()
-vort_double = 0 * Z_double
-vort_particles = 0 * vort_double
 fotoTimer = 0.0
 it = 0
 freqTimer = 0.0
@@ -93,7 +80,7 @@ F_total = 0
 phi0 = -np.sqrt((R - R_wall_center) ** 2) + wall_thickness
 char_func = 0 * Z
 smooth_Heaviside(char_func, phi0, moll_zone)
-part_mass = np.sum(char_func * R)
+
 
 psi_inner = psi[..., ghost_size:-ghost_size].copy()
 FD_stokes_solver = FastDiagonalisationStokesSolver(
@@ -120,13 +107,7 @@ while t < tEnd:
     compute_velocity_from_psi_periodic(u_z, u_r, psi, R, dx, per_communicator)
 
     # add free stream
-    prefac_x = 1.0
-    prefac_y = 0.0
-    if t < T_ramp:
-        prefac_x = np.sin(0.5 * np.pi * t / T_ramp)
-        prefac_y = 5e-2 * np.sin(np.pi * t / T_ramp)
-    u_z[...] += U_0 * prefac_x
-    u_r[...] += U_0 * prefac_y
+    u_z[...] += U_0
 
     if fotoTimer >= fotoTimer_limit or t == 0:
         fotoTimer = 0.0
