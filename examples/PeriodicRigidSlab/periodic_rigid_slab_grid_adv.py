@@ -71,8 +71,6 @@ temp_vorticity = 0 * Z
 psi = 0 * Z
 u_z = 0 * Z
 u_r = 0 * Z
-u_z_old = 0 * Z
-u_r_old = 0 * Z
 u_z_upen = 0 * Z
 u_r_upen = 0 * Z
 fotoTimer = 0.0
@@ -89,7 +87,6 @@ F_total = 0
 phi0 = -np.sqrt((R - R_wall_center) ** 2) + wall_thickness
 char_func = 0 * Z
 smooth_Heaviside(char_func, phi0, moll_zone)
-part_mass = np.sum(char_func * R)
 
 psi_inner = psi[..., ghost_size:-ghost_size].copy()
 FD_stokes_solver = FastDiagonalisationStokesSolver(
