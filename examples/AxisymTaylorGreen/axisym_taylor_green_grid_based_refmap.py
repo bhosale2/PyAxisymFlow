@@ -157,10 +157,6 @@ while t < tEnd:
         0.9 * dx ** 2 / 4 / nu,
         LCFL / (np.amax(np.fabs(vorticity)) + eps),
     )
-    if freqTimer + dt > freqTimer_limit:
-        dt = freqTimer_limit - freqTimer
-    if t + dt > tEnd:
-        dt = tEnd - t
 
     advect_refmap_via_eno3(
        eta1,
