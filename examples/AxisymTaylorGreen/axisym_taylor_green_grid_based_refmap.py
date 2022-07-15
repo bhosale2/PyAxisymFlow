@@ -162,19 +162,14 @@ while t < tEnd:
     if t + dt > tEnd:
         dt = tEnd - t
 
-    #advect_refmap_via_eno3(
-    #    eta1,
-    #    eta2,
-    #    u_z,
-    #    u_r,
-    #   dt,
-    #)
-    advect_CD2_ENO(
-        eta1, u_z, u_r, temp_gradient, total_flux, pos_flux, neg_flux, dt, dx
+    advect_refmap_via_eno3(
+       eta1,
+       eta2,
+       u_z,
+       u_r,
+      dt,
     )
-    advect_CD2_ENO(
-        eta2, u_z, u_r, temp_gradient, total_flux, pos_flux, neg_flux, dt, dx
-    )
+    
 
     # pin eta and phi boundary
     phi_orig[...] = -np.sqrt((eta1 - Z_cm) ** 2 + (eta2 - R_cm) ** 2) + r_ball
