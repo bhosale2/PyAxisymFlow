@@ -9,7 +9,6 @@ from set_sim_params import grid_size_z, grid_size_r, dx, eps, LCFL, domain_AR
 from utils.plotset import plotset
 from utils.custom_cmap import lab_cmp
 from utils.dump_vtk import vtk_init, vtk_write
-from kernels.brinkmann_penalize import brinkmann_penalize
 from kernels.compute_velocity_from_psi import compute_velocity_from_psi_unb
 from kernels.compute_vorticity_from_velocity import compute_vorticity_from_velocity_unb
 from kernels.smooth_Heaviside import smooth_Heaviside
@@ -17,24 +16,20 @@ from kernels.kill_boundary_vorticity_sine import (
     kill_boundary_vorticity_sine_r,
     kill_boundary_vorticity_sine_z,
 )
-from kernels.advect_particle import advect_vorticity_via_particles
 from kernels.FDM_stokes_psi_solve import (
     stokes_psi_init,
     stokes_psi_solve_LU,
 )
 from kernels.diffusion_RK2 import diffusion_RK2_unb
 import core.particles_to_mesh as p2m
-
-from kernels.advect_CD2_ENO import advect_CD2_ENO
 from elasto_kernels.div_tau import update_vorticity_from_solid_stress
 from elasto_kernels.solid_sigma import solid_sigma
-from elasto_kernels.update_upwind2 import update_upwind2
 from elasto_kernels.extrapolate_eta_using_least_squares_unb import extrapolate_eta_with_least_squares
 from kernels.advect_refmap_via_eno3 import gen_advect_refmap_via_eno3
 
 plt.figure(figsize=(5 / domain_AR, 5))
 # Parameters
-moll_zone = dx * 2
+moll_zone = dx * 4
 extrap_zone = moll_zone + 4 * dx
 reinit_band = extrap_zone
 r_ball = 0.15
@@ -63,8 +58,6 @@ temp_vorticity = 0 * Z
 psi = 0 * Z
 u_z = 0 * Z
 u_r = 0 * Z
-u_z_upen = 0 * Z
-u_r_upen = 0 * Z
 Z_double, R_double = np.meshgrid(z, z)
 z_particles = Z_double.copy()
 r_particles = R_double.copy()
@@ -96,14 +89,9 @@ freqTimer = 0.0
 _, _, LU_decomp_psi = stokes_psi_init(R)
 vtk_image_data, temp_vtk_array, writer = vtk_init()
 
-temp_gradient = 0 * Z
-pos_flux = 0 * Z
-neg_flux = 0 * Z
-mid_vorticity = 0 * Z
+
 bad_phi = 0 * Z
 phi_orig = 0 * Z
-temp_gradient = 0 * Z
-total_flux = 0 * Z
 total_flux_double = 0 * R_double
 sigma_s_11 = 0 * Z
 sigma_s_12 = 0 * Z
@@ -152,29 +140,23 @@ while t < tEnd:
     dt = min(
         LCFL
         * dx
-        / (np.amax(np.fabs(inside_solid * u_z) + np.fabs(inside_solid * u_r)) + eps),
+        / (np.amax(np.fabs(u_z) + np.fabs(u_r)) + eps),
         LCFL * dx / np.sqrt(G / rho_f),
         0.9 * dx ** 2 / 4 / nu,
-        LCFL / (np.amax(np.fabs(vorticity)) + eps),
     )
     if freqTimer + dt > freqTimer_limit:
         dt = freqTimer_limit - freqTimer
     if t + dt > tEnd:
         dt = tEnd - t
 
-    #advect_refmap_via_eno3(
-    #    eta1,
-    #    eta2,
-    #    u_z,
-    #    u_r,
-    #   dt,
-    #)
-    advect_CD2_ENO(
-        eta1, u_z, u_r, temp_gradient, total_flux, pos_flux, neg_flux, dt, dx
+    advect_refmap_via_eno3(
+       eta1,
+       eta2,
+       u_z,
+       u_r,
+      dt,
     )
-    advect_CD2_ENO(
-        eta2, u_z, u_r, temp_gradient, total_flux, pos_flux, neg_flux, dt, dx
-    )
+    
 
     # pin eta and phi boundary
     phi_orig[...] = -np.sqrt((eta1 - Z_cm) ** 2 + (eta2 - R_cm) ** 2) + r_ball
