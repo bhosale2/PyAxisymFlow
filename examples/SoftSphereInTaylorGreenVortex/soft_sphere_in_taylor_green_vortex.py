@@ -25,7 +25,7 @@ import core.particles_to_mesh as p2m
 from elasto_kernels.div_tau import update_vorticity_from_solid_stress
 from elasto_kernels.solid_sigma import solid_sigma
 from elasto_kernels.extrapolate_eta_using_least_squares_unb import extrapolate_eta_with_least_squares
-from kernels.advect_refmap_via_eno3 import gen_advect_refmap_via_eno3
+from elasto_kernels.advect_refmap_via_eno3 import gen_advect_refmap_via_eno3
 
 plt.figure(figsize=(5 / domain_AR, 5))
 # Parameters
