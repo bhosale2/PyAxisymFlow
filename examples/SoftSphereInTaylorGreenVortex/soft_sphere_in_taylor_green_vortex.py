@@ -1,33 +1,36 @@
 import numpy as np
 import matplotlib.pyplot as plt
-import sys
 import skfmm
 import os
-
-sys.path.append("../../")
-from set_sim_params import grid_size_z, grid_size_r, dx, eps, LCFL, domain_AR
-from utils.plotset import plotset
-from utils.custom_cmap import lab_cmp
-from utils.dump_vtk import vtk_init, vtk_write
-from kernels.compute_velocity_from_psi import compute_velocity_from_psi_unb
-from kernels.compute_vorticity_from_velocity import compute_vorticity_from_velocity_unb
-from kernels.smooth_Heaviside import smooth_Heaviside
-from kernels.kill_boundary_vorticity_sine import (
+from pyaxisymflow.utils.custom_cmap import lab_cmp
+from pyaxisymflow.kernels.compute_velocity_from_psi import compute_velocity_from_psi_unb
+from pyaxisymflow.kernels.smooth_Heaviside import smooth_Heaviside
+from pyaxisymflow.kernels.kill_boundary_vorticity_sine import (
     kill_boundary_vorticity_sine_r,
     kill_boundary_vorticity_sine_z,
 )
-from kernels.FDM_stokes_psi_solve import (
-    stokes_psi_init,
-    stokes_psi_solve_LU,
+from pyaxisymflow.kernels.FastDiagonalisationStokesSolver import (
+    FastDiagonalisationStokesSolver,
 )
-from kernels.diffusion_RK2 import diffusion_RK2_unb
-import core.particles_to_mesh as p2m
-from elasto_kernels.div_tau import update_vorticity_from_solid_stress
-from elasto_kernels.solid_sigma import solid_sigma
-from elasto_kernels.extrapolate_eta_using_least_squares_unb import (
+from pyaxisymflow.kernels.diffusion_RK2 import diffusion_RK2_unb
+from pyaxisymflow.kernels.advect_vorticity_via_eno3 import gen_advect_vorticity_via_eno3
+from pyaxisymflow.elasto_kernels.div_tau import update_vorticity_from_solid_stress
+from pyaxisymflow.elasto_kernels.solid_sigma import solid_sigma
+from pyaxisymflow.elasto_kernels.extrapolate_eta_using_least_squares_unb import (
     extrapolate_eta_with_least_squares,
 )
-from elasto_kernels.advect_refmap_via_eno3 import gen_advect_refmap_via_eno3
+from pyaxisymflow.elasto_kernels.advect_refmap_via_eno3 import (
+    gen_advect_refmap_via_eno3,
+)
+
+# global settings
+grid_size_z = 256
+domain_AR = 0.5
+dx = 1.0 / grid_size_z
+grid_size_r = int(domain_AR * grid_size_z)
+CFL = 0.1
+eps = np.finfo(float).eps
+num_threads = 4
 
 plt.figure(figsize=(5 / domain_AR, 5))
 # Parameters
@@ -66,10 +69,7 @@ r_particles = R_double.copy()
 vort_double = 0 * Z_double
 vort_particles = 0 * vort_double
 Z_double, R_double = np.meshgrid(z, z)
-z_particles = Z_double.copy()
-r_particles = R_double.copy()
 vort_double = 0 * Z_double
-vort_particles = 0 * vort_double
 
 eta1 = Z.copy()
 eta2 = R.copy()
@@ -88,10 +88,6 @@ t = 0
 it = 0
 freqTimer = 0.0
 
-_, _, LU_decomp_psi = stokes_psi_init(R)
-vtk_image_data, temp_vtk_array, writer = vtk_init()
-
-
 bad_phi = 0 * Z
 phi_orig = 0 * Z
 total_flux_double = 0 * R_double
@@ -105,6 +101,10 @@ eta2r = 0 * Z
 tau_z = 0 * Z
 tau_r = 0 * Z
 advect_refmap_via_eno3 = gen_advect_refmap_via_eno3(dx, grid_size_r, grid_size_z)
+FD_stokes_solver = FastDiagonalisationStokesSolver(grid_size_r, grid_size_z, dx)
+advect_vorticity_via_eno3 = gen_advect_vorticity_via_eno3(
+    dx, grid_size_r, grid_size_z, num_threads=num_threads
+)
 
 # solver loop
 while t < tEnd:
@@ -114,7 +114,7 @@ while t < tEnd:
     kill_boundary_vorticity_sine_r(vorticity, R, 3, dx)
 
     # solve for stream function and get velocity
-    stokes_psi_solve_LU(psi, LU_decomp_psi, vorticity, R)
+    FD_stokes_solver.solve(solution_field=psi, rhs_field=vorticity)
     compute_velocity_from_psi_unb(u_z, u_r, psi, R, dx)
 
     # plotting!!
@@ -146,8 +146,8 @@ while t < tEnd:
 
     # get dt
     dt = min(
-        LCFL * dx / (np.amax(np.fabs(u_z) + np.fabs(u_r)) + eps),
-        LCFL * dx / np.sqrt(G / rho_f),
+        CFL * dx / (np.amax(np.fabs(u_z) + np.fabs(u_r)) + eps),
+        CFL * dx / np.sqrt(G / rho_f),
         0.9 * dx**2 / 4 / nu,
     )
     if freqTimer + dt > freqTimer_limit:
@@ -214,20 +214,8 @@ while t < tEnd:
         vorticity, tau_z, tau_r, sigma_s_11, sigma_s_12, sigma_s_22, R, dt, dx
     )
 
-    # advect particles
-    advect_vorticity_via_particles(
-        z_particles,
-        r_particles,
-        vort_particles,
-        vorticity,
-        Z_double,
-        R_double,
-        grid_size_r,
-        u_z,
-        u_r,
-        dx,
-        dt,
-    )
+    # advect vorticity
+    advect_vorticity_via_eno3(vorticity, u_z, u_r, dt)
 
     # diffuse vorticity
     diffusion_RK2_unb(vorticity, temp_vorticity, R, nu, dt, dx)
