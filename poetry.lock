@@ -473,6 +473,17 @@ optional = false
 python-versions = ">=3.6"
 
 [[package]]
+name = "scikit-fmm"
+version = "2022.3.26"
+description = "An extension module implementing the fast marching method"
+category = "main"
+optional = false
+python-versions = "*"
+
+[package.dependencies]
+numpy = ">=1.0.2"
+
+[[package]]
 name = "scipy"
 version = "1.9.0"
 description = "SciPy: Scientific Library for Python"
@@ -615,7 +626,7 @@ multidict = ">=4.0"
 [metadata]
 lock-version = "1.1"
 python-versions = ">=3.8,<3.11"
-content-hash = "07ebb5711c15f6aa9b0f8b261bcce2f00f406745d088ed4a4fa685dcb3f17613"
+content-hash = "54c8b204621b1fd83477d357320f42904d8b0702778c0e52dd4679721c337cb1"
 
 [metadata.files]
 aiohttp = [
@@ -1042,6 +1053,14 @@ pyyaml = [
     {file = "PyYAML-6.0-cp39-cp39-win32.whl", hash = "sha256:b5b9eccad747aabaaffbc6064800670f0c297e52c12754eb1d976c57e4f74dcb"},
     {file = "PyYAML-6.0-cp39-cp39-win_amd64.whl", hash = "sha256:b3d267842bf12586ba6c734f89d1f5b871df0273157918b0ccefa29deb05c21c"},
     {file = "PyYAML-6.0.tar.gz", hash = "sha256:68fb519c14306fec9720a2a5b45bc9f0c8d1b9c72adf45c37baedfcd949c35a2"},
+]
+scikit-fmm = [
+    {file = "scikit-fmm-2022.3.26.tar.gz", hash = "sha256:c3155f96d733dea8791514b709762c61d2f7cfde31ed8d2b8c26ca167356de8e"},
+    {file = "scikit_fmm-2022.3.26-cp310-cp310-win_amd64.whl", hash = "sha256:156c180c3c3a2d1d78b82ad2134418c6748bcb7cd031027b1e21e2b80a771d65"},
+    {file = "scikit_fmm-2022.3.26-cp36-cp36m-win_amd64.whl", hash = "sha256:656d61f4301833900aaac33e6c17a5e9b19ac476d7a92590ac71ed3a62dc20ba"},
+    {file = "scikit_fmm-2022.3.26-cp37-cp37m-win_amd64.whl", hash = "sha256:19336f0e03bb65111de7fd33f3a0e15e25d1d4688b94c6c8e5e76d3f724564b5"},
+    {file = "scikit_fmm-2022.3.26-cp38-cp38-win_amd64.whl", hash = "sha256:b2d5489ec0711672432989ce53c620245c7a7b14af6857ef68b6c6ef063925e4"},
+    {file = "scikit_fmm-2022.3.26-cp39-cp39-win_amd64.whl", hash = "sha256:fa1485aa9c5df5029e72f26d46cf4d8b4867bc3d1964d903cf7473cc71481064"},
 ]
 scipy = [
     {file = "scipy-1.9.0-cp310-cp310-macosx_10_9_x86_64.whl", hash = "sha256:0424d1bbbfa51d5ddaa16d067fd593863c9f2fb7c6840c32f8a08a8832f8e7a4"},
