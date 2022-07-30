@@ -1,24 +1,34 @@
 import numpy as np
 import matplotlib.pyplot as plt
-import sys
 import os
-
-sys.path.append("../../")
-from set_sim_params import grid_size_z, grid_size_r, dx, eps, LCFL, domain_AR
-from utils.plotset import plotset
-from utils.custom_cmap import lab_cmp
-from utils.dump_vtk import vtk_init, vtk_write
-from kernels.brinkmann_penalize import brinkmann_penalize
-from kernels.compute_velocity_from_psi import compute_velocity_from_psi_unb
-from kernels.compute_vorticity_from_velocity import compute_vorticity_from_velocity_unb
-from kernels.advect_particle import advect_vorticity_via_particles
-from kernels.smooth_Heaviside import smooth_Heaviside
-from kernels.kill_boundary_vorticity_sine import (
+from pyaxisymflow.utils.plotset import plotset
+from pyaxisymflow.utils.custom_cmap import lab_cmp
+from pyaxisymflow.utils.dump_vtk import vtk_init, vtk_write
+from pyaxisymflow.kernels.brinkmann_penalize import brinkmann_penalize
+from pyaxisymflow.kernels.compute_velocity_from_psi import compute_velocity_from_psi_unb
+from pyaxisymflow.kernels.compute_vorticity_from_velocity import (
+    compute_vorticity_from_velocity_unb,
+)
+from pyaxisymflow.kernels.smooth_Heaviside import smooth_Heaviside
+from pyaxisymflow.kernels.kill_boundary_vorticity_sine import (
     kill_boundary_vorticity_sine_r,
     kill_boundary_vorticity_sine_z,
 )
-from kernels.diffusion_RK2_unb import diffusion_RK2_unb
-from kernels.FastDiagonalisationStokesSolver import FastDiagonalisationStokesSolver
+from pyaxisymflow.kernels.diffusion_RK2 import diffusion_RK2_unb
+from pyaxisymflow.kernels.FastDiagonalisationStokesSolver import (
+    FastDiagonalisationStokesSolver,
+)
+from pyaxisymflow.kernels.advect_vorticity_via_eno3 import gen_advect_vorticity_via_eno3
+
+
+# global settings
+grid_size_z = 256
+domain_AR = 0.5
+dx = 1.0 / grid_size_z
+grid_size_r = int(domain_AR * grid_size_z)
+CFL = 0.1
+eps = np.finfo(float).eps
+num_threads = 4
 
 plotset()
 plt.figure(figsize=(5 / domain_AR, 5))
@@ -60,13 +70,6 @@ it = 0
 freqTimer = 0.0
 u_z_upen = 0 * Z
 u_r_upen = 0 * Z
-Z_double, R_double = np.meshgrid(z, z)
-vort_double = 0 * Z_double
-vort_particles = 0 * vort_double
-Z_double, R_double = np.meshgrid(z, z)
-z_particles = Z_double.copy()
-r_particles = R_double.copy()
-
 
 #  create char function
 phi0 = -np.sqrt((Z - Z_cm) ** 2 + (R - R_cm) ** 2) + r_cyl
@@ -74,7 +77,10 @@ char_func = 0 * Z
 smooth_Heaviside(char_func, phi0, moll_zone)
 
 FD_stokes_solver = FastDiagonalisationStokesSolver(grid_size_r, grid_size_z, dx)
-vtk_image_data, temp_vtk_array, writer = vtk_init()
+vtk_image_data, temp_vtk_array, writer = vtk_init(grid_size_z, grid_size_r)
+advect_vorticity_via_eno3 = gen_advect_vorticity_via_eno3(
+    dx, grid_size_r, grid_size_z, num_threads=num_threads
+)
 
 # solver loop
 while t < tEnd:
@@ -127,13 +133,15 @@ while t < tEnd:
             writer,
             ["char_func", "avg_psi"],
             [char_func, avg_psi],
+            grid_size_z,
+            grid_size_r,
         )
         avg_psi[...] = 0 * Z
 
     # get dt
     dt = min(
         0.9 * dx**2 / 4 / nu,
-        LCFL / (np.amax(np.fabs(vorticity)) + eps),
+        CFL / (np.amax(np.fabs(u_z) + np.fabs(u_r)) + eps),
         0.01 * freqTimer_limit,
     )
     if freqTimer + dt > freqTimer_limit:
@@ -170,19 +178,8 @@ while t < tEnd:
     )
     vorticity[...] += penal_vorticity
 
-    advect_vorticity_via_particles(
-        z_particles,
-        r_particles,
-        vort_particles,
-        vorticity,
-        Z_double,
-        R_double,
-        grid_size_r,
-        u_z,
-        u_r,
-        dx,
-        dt,
-    )
+    # advect vorticity
+    advect_vorticity_via_eno3(vorticity, u_z, u_r, dt)
 
     # diffuse vorticity
     diffusion_RK2_unb(vorticity, temp_vorticity, R, nu, dt, dx)
@@ -198,5 +195,6 @@ while t < tEnd:
 
 os.system("rm -f 2D_advect.mp4")
 os.system(
-    "ffmpeg -r 8 -s 3840x2160 -f image2 -pattern_type glob -i 'snap_*.png' -vcodec libx264 -crf 15 -pix_fmt yuv420p -vf 'crop=trunc(iw/2)*2:trunc(ih/2)*2' 2D_advect.mp4"
+    "ffmpeg -r 8 -s 3840x2160 -f image2 -pattern_type glob -i 'snap_*.png' "
+    "-vcodec libx264 -crf 15 -pix_fmt yuv420p -vf 'crop=trunc(iw/2)*2:trunc(ih/2)*2' 2D_advect.mp4"
 )
