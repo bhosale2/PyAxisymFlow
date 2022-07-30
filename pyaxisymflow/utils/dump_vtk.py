@@ -1,9 +1,8 @@
 import vtk
 from vtk.numpy_interface import dataset_adapter as dsa
-from set_sim_params import grid_size_z, grid_size_r
 
 
-def vtk_init():
+def vtk_init(grid_size_z, grid_size_r):
     """
     initialises the writer
     """
@@ -27,7 +26,14 @@ def vtk_init():
 
 
 def vtk_write(
-    filename, vtk_image_data, temp_vtk_array, writer, field_names_list, field_list
+    filename,
+    vtk_image_data,
+    temp_vtk_array,
+    writer,
+    field_names_list,
+    field_list,
+    grid_size_z,
+    grid_size_r,
 ):
     """
     vtk writer: see examples in case/ folder
