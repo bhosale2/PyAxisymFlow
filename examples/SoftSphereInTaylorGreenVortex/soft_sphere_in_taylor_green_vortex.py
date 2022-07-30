@@ -82,7 +82,6 @@ freqTimer = 0.0
 
 bad_phi = 0 * Z
 phi_orig = 0 * Z
-total_flux_double = 0 * R_double
 sigma_s_11 = 0 * Z
 sigma_s_12 = 0 * Z
 sigma_s_22 = 0 * Z
@@ -165,7 +164,7 @@ while t < tEnd:
     # get char function
     ball_char_func *= 0
     smooth_Heaviside(ball_char_func, ball_phi, moll_zone)
-    inside_solid[...] = ball_phi > 0.0
+    inside_solid[...] = ball_char_func > 0.5
 
     # extrapolate eta for stresses
     extrapolate_eta_with_least_squares(
