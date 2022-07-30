@@ -1,9 +1,0 @@
-black
-matplotlib
-numba
-numpy
-pystencils
-scipy
-seaborn
-sympy
-vtk

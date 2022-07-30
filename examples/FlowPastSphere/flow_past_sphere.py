@@ -1,31 +1,32 @@
 import numpy as np
 import matplotlib.pyplot as plt
-import sys
 import os
-
-sys.path.append("../../")
-from set_sim_params import (
-    grid_size_z,
-    grid_size_r,
-    dx,
-    eps,
-    LCFL,
-    domain_AR,
-    num_threads,
+from pyaxisymflow.utils.plotset import plotset
+from pyaxisymflow.utils.custom_cmap import lab_cmp
+from pyaxisymflow.kernels.brinkmann_penalize import brinkmann_penalize
+from pyaxisymflow.kernels.compute_velocity_from_psi import compute_velocity_from_psi_unb
+from pyaxisymflow.kernels.compute_vorticity_from_velocity import (
+    compute_vorticity_from_velocity_unb,
 )
-from utils.plotset import plotset
-from utils.custom_cmap import lab_cmp
-from kernels.brinkmann_penalize import brinkmann_penalize
-from kernels.compute_velocity_from_psi import compute_velocity_from_psi_unb
-from kernels.compute_vorticity_from_velocity import compute_vorticity_from_velocity_unb
-from kernels.smooth_Heaviside import smooth_Heaviside
-from kernels.kill_boundary_vorticity_sine import (
+from pyaxisymflow.kernels.smooth_Heaviside import smooth_Heaviside
+from pyaxisymflow.kernels.kill_boundary_vorticity_sine import (
     kill_boundary_vorticity_sine_r,
     kill_boundary_vorticity_sine_z,
 )
-from kernels.diffusion_RK2 import diffusion_RK2_unb
-from kernels.FastDiagonalisationStokesSolver import FastDiagonalisationStokesSolver
-from kernels.advect_vorticity_via_eno3 import gen_advect_vorticity_via_eno3
+from pyaxisymflow.kernels.diffusion_RK2 import diffusion_RK2_unb
+from pyaxisymflow.kernels.FastDiagonalisationStokesSolver import (
+    FastDiagonalisationStokesSolver,
+)
+from pyaxisymflow.kernels.advect_vorticity_via_eno3 import gen_advect_vorticity_via_eno3
+
+# global settings
+grid_size_z = 256
+domain_AR = 0.5
+dx = 1.0 / grid_size_z
+grid_size_r = int(domain_AR * grid_size_z)
+CFL = 0.1
+eps = np.finfo(float).eps
+num_threads = 4
 
 plotset()
 plt.figure(figsize=(5 / domain_AR, 5))
@@ -131,7 +132,7 @@ while t < tEnd:
     # get dt
     dt = min(
         0.9 * dx**2 / 4 / nu,
-        LCFL / (np.amax(np.fabs(vorticity)) + eps),
+        CFL / (np.amax(np.fabs(u_z) + np.fabs(u_r)) + eps),
     )
 
     # penalise velocity (particle)
@@ -168,5 +169,6 @@ while t < tEnd:
 
 os.system("rm -f 2D_advect.mp4")
 os.system(
-    "ffmpeg -r 20 -s 3840x2160 -f image2 -pattern_type glob -i 'snap*.png' -vcodec libx264 -crf 15 -pix_fmt yuv420p  2D_advect.mp4"
+    "ffmpeg -r 20 -s 3840x2160 -f image2 -pattern_type glob -i 'snap*.png' "
+    "-vcodec libx264 -crf 15 -pix_fmt yuv420p  2D_advect.mp4"
 )

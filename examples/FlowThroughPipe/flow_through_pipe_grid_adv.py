@@ -30,8 +30,8 @@ from kernels.advect_vorticity_via_eno3 import gen_advect_vorticity_via_eno3_peri
 max_z = 0.1
 max_r = 0.5
 grid_size_z = 20
-domain_AR = max_r/max_z
-grid_size_r = int(domain_AR*grid_size_z)
+domain_AR = max_r / max_z
+grid_size_r = int(domain_AR * grid_size_z)
 dx = max_r / grid_size_r
 z = np.linspace(0 + dx / 2, max_z - dx / 2, grid_size_z)
 r = np.linspace(0 + dx / 2, max_r - dx / 2, grid_size_r)
@@ -90,7 +90,8 @@ FD_stokes_solver = FastDiagonalisationStokesSolver(
     bc_type="homogenous_dirichlet_along_r_and_periodic_along_z",
 )
 advect_vorticity_via_eno3_periodic = gen_advect_vorticity_via_eno3_periodic(
-    dx, grid_size_r, grid_size_z, per_communicator, num_threads=num_threads)
+    dx, grid_size_r, grid_size_z, per_communicator, num_threads=num_threads
+)
 
 # solver loop
 while t < tEnd:

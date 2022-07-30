@@ -24,7 +24,9 @@ from kernels.diffusion_RK2 import diffusion_RK2_unb
 import core.particles_to_mesh as p2m
 from elasto_kernels.div_tau import update_vorticity_from_solid_stress
 from elasto_kernels.solid_sigma import solid_sigma
-from elasto_kernels.extrapolate_eta_using_least_squares_unb import extrapolate_eta_with_least_squares
+from elasto_kernels.extrapolate_eta_using_least_squares_unb import (
+    extrapolate_eta_with_least_squares,
+)
 from elasto_kernels.advect_refmap_via_eno3 import gen_advect_refmap_via_eno3
 
 plt.figure(figsize=(5 / domain_AR, 5))
@@ -80,7 +82,7 @@ ball_phi_double = 0 * Z_double
 kz = 2 * np.pi
 kr = kz
 C = 5e-2
-vorticity[...] = C * (kz ** 2 + kr ** 2) * np.sin(kz * Z) * np.sin(kr * R)
+vorticity[...] = C * (kz**2 + kr**2) * np.sin(kz * Z) * np.sin(kr * R)
 
 t = 0
 it = 0
@@ -102,8 +104,7 @@ eta1r = 0 * Z
 eta2r = 0 * Z
 tau_z = 0 * Z
 tau_r = 0 * Z
-advect_refmap_via_eno3 =  gen_advect_refmap_via_eno3(
-    dx, grid_size_r, grid_size_z)
+advect_refmap_via_eno3 = gen_advect_refmap_via_eno3(dx, grid_size_r, grid_size_z)
 
 # solver loop
 while t < tEnd:
@@ -119,7 +120,14 @@ while t < tEnd:
     # plotting!!
     if freqTimer >= freqTimer_limit:
         freqTimer = 0.0
-        plt.contourf(Z, R, vorticity, levels=np.linspace(-25, 25, 25), extend="both", cmap=lab_cmp)
+        plt.contourf(
+            Z,
+            R,
+            vorticity,
+            levels=np.linspace(-25, 25, 25),
+            extend="both",
+            cmap=lab_cmp,
+        )
         plt.colorbar()
         plt.contour(Z, R, inside_solid * eta1, levels=20, cmap="Greens", linewidths=2)
         plt.contour(Z, R, inside_solid * eta2, levels=20, cmap="Purples", linewidths=2)
@@ -138,11 +146,9 @@ while t < tEnd:
 
     # get dt
     dt = min(
-        LCFL
-        * dx
-        / (np.amax(np.fabs(u_z) + np.fabs(u_r)) + eps),
+        LCFL * dx / (np.amax(np.fabs(u_z) + np.fabs(u_r)) + eps),
         LCFL * dx / np.sqrt(G / rho_f),
-        0.9 * dx ** 2 / 4 / nu,
+        0.9 * dx**2 / 4 / nu,
     )
     if freqTimer + dt > freqTimer_limit:
         dt = freqTimer_limit - freqTimer
@@ -150,13 +156,12 @@ while t < tEnd:
         dt = tEnd - t
 
     advect_refmap_via_eno3(
-       eta1,
-       eta2,
-       u_z,
-       u_r,
-      dt,
+        eta1,
+        eta2,
+        u_z,
+        u_r,
+        dt,
     )
-    
 
     # pin eta and phi boundary
     phi_orig[...] = -np.sqrt((eta1 - Z_cm) ** 2 + (eta2 - R_cm) ** 2) + r_ball
@@ -175,7 +180,8 @@ while t < tEnd:
     inside_solid[...] = ball_char_func > 0.5
 
     # extrapolate eta for stresses
-    extrapolate_eta_with_least_squares(inside_solid,
+    extrapolate_eta_with_least_squares(
+        inside_solid,
         ball_phi,
         eta1,
         eta2,
@@ -210,9 +216,18 @@ while t < tEnd:
 
     # advect particles
     advect_vorticity_via_particles(
-        z_particles, r_particles, vort_particles, vorticity, Z_double, R_double, grid_size_r, u_z, u_r, dx, dt
+        z_particles,
+        r_particles,
+        vort_particles,
+        vorticity,
+        Z_double,
+        R_double,
+        grid_size_r,
+        u_z,
+        u_r,
+        dx,
+        dt,
     )
-
 
     # diffuse vorticity
     diffusion_RK2_unb(vorticity, temp_vorticity, R, nu, dt, dx)
