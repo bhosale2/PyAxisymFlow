@@ -1,30 +1,39 @@
 import numpy as np
 import matplotlib.pyplot as plt
-import sys
 import os
-
-sys.path.append("../../")
-from set_sim_params import grid_size_z, grid_size_r, dx, eps, LCFL, domain_AR
-from utils.plotset import plotset
-from utils.custom_cmap import lab_cmp
-from utils.dump_vtk import vtk_init, vtk_write
-from kernels.brinkmann_penalize import brinkmann_penalize
-from kernels.compute_forces import compute_force_on_body
-from kernels.smooth_Heaviside import smooth_Heaviside
-from kernels.kill_boundary_vorticity_sine import (
+from pyaxisymflow.utils.plotset import plotset
+from pyaxisymflow.utils.dump_vtk import vtk_init, vtk_write
+from pyaxisymflow.kernels.brinkmann_penalize import brinkmann_penalize
+from pyaxisymflow.kernels.smooth_Heaviside import smooth_Heaviside
+from pyaxisymflow.kernels.kill_boundary_vorticity_sine import (
     kill_boundary_vorticity_sine_r,
-    kill_boundary_vorticity_sine_z,
 )
-from kernels.FastDiagonalisationStokesSolver import FastDiagonalisationStokesSolver
-from kernels.periodic_boundary_ghost_comm import gen_periodic_boundary_ghost_comm
-from kernels.compute_velocity_from_psi import compute_velocity_from_psi_periodic
-from kernels.compute_vorticity_from_velocity import (
+from pyaxisymflow.kernels.FastDiagonalisationStokesSolver import (
+    FastDiagonalisationStokesSolver,
+)
+from pyaxisymflow.kernels.periodic_boundary_ghost_comm import (
+    gen_periodic_boundary_ghost_comm,
+)
+from pyaxisymflow.kernels.compute_velocity_from_psi import (
+    compute_velocity_from_psi_periodic,
+)
+from pyaxisymflow.kernels.compute_vorticity_from_velocity import (
     compute_vorticity_from_velocity_periodic,
 )
-from kernels.advect_particle import advect_vorticity_via_particles_periodic
-from kernels.diffusion_RK2 import diffusion_RK2_periodic
+from pyaxisymflow.kernels.advect_particle import advect_vorticity_via_particles_periodic
+from pyaxisymflow.kernels.diffusion_RK2 import diffusion_RK2_periodic
 
-# plotset()
+
+# global settings
+grid_size_z = 256
+domain_AR = 0.5
+dx = 1.0 / grid_size_z
+grid_size_r = int(domain_AR * grid_size_z)
+CFL = 0.1
+eps = np.finfo(float).eps
+num_threads = 4
+
+plotset()
 plt.figure(figsize=(5 / domain_AR, 5))
 # Parameters
 fotoTimer_limit = 0.1
@@ -96,7 +105,7 @@ FD_stokes_solver = FastDiagonalisationStokesSolver(
     dx,
     bc_type="homogenous_dirichlet_along_r_and_periodic_along_z",
 )
-vtk_image_data, temp_vtk_array, writer = vtk_init()
+vtk_image_data, temp_vtk_array, writer = vtk_init(grid_size_z, grid_size_r)
 
 # solver loop
 while t < tEnd:
@@ -123,8 +132,6 @@ while t < tEnd:
 
     if fotoTimer >= fotoTimer_limit or t == 0:
         fotoTimer = 0.0
-
-        fotoTimer = 0.0
         levels = np.linspace(-0.1, 0.1, 25)
         plt.plot(R[:, int(grid_size_z / 2)], u_z[:, int(grid_size_z / 2)])
         plt.plot(
@@ -143,12 +150,14 @@ while t < tEnd:
             writer,
             ["char_func", "vort", "u_z", "u_r"],
             [char_func, vorticity, u_z, u_r],
+            grid_size_z,
+            grid_size_r,
         )
 
     # get dt
     dt = min(
         0.9 * dx**2 / 4 / nu,
-        LCFL / (np.amax(np.fabs(vorticity)) + eps),
+        CFL / (np.amax(np.fabs(vorticity)) + eps),
         0.01 * freqTimer_limit,
     )
 
@@ -189,5 +198,6 @@ while t < tEnd:
 
 os.system("rm -f 2D_advect.mp4")
 os.system(
-    "ffmpeg -r 8 -s 3840x2160 -f image2 -pattern_type glob -i 'snap_*.png' -vcodec libx264 -crf 15 -pix_fmt yuv420p -vf 'crop=trunc(iw/2)*2:trunc(ih/2)*2' 2D_advect.mp4"
+    "ffmpeg -r 8 -s 3840x2160 -f image2 -pattern_type glob -i 'snap_*.png' "
+    "-vcodec libx264 -crf 15 -pix_fmt yuv420p -vf 'crop=trunc(iw/2)*2:trunc(ih/2)*2' 2D_advect.mp4"
 )
