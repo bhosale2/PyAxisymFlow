@@ -64,19 +64,11 @@ psi = 0 * Z
 u_z = 0 * Z
 u_r = 0 * Z
 Z_double, R_double = np.meshgrid(z, z)
-z_particles = Z_double.copy()
-r_particles = R_double.copy()
-vort_double = 0 * Z_double
-vort_particles = 0 * vort_double
-Z_double, R_double = np.meshgrid(z, z)
-vort_double = 0 * Z_double
 
 eta1 = Z.copy()
 eta2 = R.copy()
 eta1_double = Z_double.copy()
 eta2_double = R_double.copy()
-u_z_double = R_double.copy()
-u_r_double = R_double.copy()
 ball_phi_double = 0 * Z_double
 
 kz = 2 * np.pi
@@ -150,10 +142,6 @@ while t < tEnd:
         CFL * dx / np.sqrt(G / rho_f),
         0.9 * dx**2 / 4 / nu,
     )
-    if freqTimer + dt > freqTimer_limit:
-        dt = freqTimer_limit - freqTimer
-    if t + dt > tEnd:
-        dt = tEnd - t
 
     advect_refmap_via_eno3(
         eta1,
@@ -177,7 +165,7 @@ while t < tEnd:
     # get char function
     ball_char_func *= 0
     smooth_Heaviside(ball_char_func, ball_phi, moll_zone)
-    inside_solid[...] = ball_char_func > 0.5
+    inside_solid[...] = ball_phi > 0.0
 
     # extrapolate eta for stresses
     extrapolate_eta_with_least_squares(
@@ -228,5 +216,6 @@ while t < tEnd:
         print(t, np.amax(vorticity))
 os.system("rm -f 2D_advect.mp4")
 os.system(
-    "ffmpeg -r 20 -s 3840x2160 -f image2 -pattern_type glob -i 'snap*.png' -vcodec libx264 -crf 15 -pix_fmt yuv420p  2D_advect.mp4"
+    "ffmpeg -r 20 -s 3840x2160 -f image2 -pattern_type glob -i 'snap*.png' "
+    "-vcodec libx264 -crf 15 -pix_fmt yuv420p  2D_advect.mp4"
 )
