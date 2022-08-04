@@ -61,21 +61,6 @@ def stokes_phi_init(grid_size_z, grid_size_r, dx, R):
     return FDM_final, M, LU_decomp
 
 
-def stokes_phi_solve_gmres(phi, FDM_matrix, precond_matrix, vel_divg):
-    phi = phi.reshape(
-        -1,
-    )
-    phi[...], _ = sppla.gmres(
-        FDM_matrix,
-        vel_divg.reshape(
-            -1,
-        ),
-        x0=phi.copy(),
-        M=precond_matrix,
-    )
-    phi = phi.reshape(grid_size_r, grid_size_z)
-
-
 def stokes_phi_solve_LU(phi, LU_decomp, vel_divg, grid_size_z, grid_size_r):
     phi = phi.reshape(
         -1,

@@ -3,7 +3,6 @@ import matplotlib.pyplot as plt
 import os
 from pyaxisymflow.utils.plotset import plotset
 from pyaxisymflow.utils.custom_cmap import lab_cmp
-from pyaxisymflow.utils.dump_vtk import vtk_init, vtk_write
 from pyaxisymflow.kernels.brinkmann_penalize import brinkmann_penalize
 from pyaxisymflow.kernels.compute_velocity_from_psi import compute_velocity_from_psi_unb
 from pyaxisymflow.kernels.compute_vorticity_from_velocity import (
@@ -47,10 +46,6 @@ b = a * AR
 freq = 16
 freqTimer_limit = 1 / freq
 no_cycles = 20
-snaps_per_cycle = 40
-fotoTimer_limit = 1 / freq / snaps_per_cycle
-snap_cycle_start = 19
-snap_cycle_end = 20
 
 omega = 2 * np.pi * freq
 d_AC_by_r_core = 0.11235582096628798
@@ -70,6 +65,7 @@ vorticity = 0 * Z
 penal_vorticity = 0 * Z
 temp_vorticity = 0 * Z
 psi = 0 * Z
+phi = 0 * Z
 u_z = 0 * Z
 u_r = 0 * Z
 u_z_pen = 0 * Z
@@ -80,7 +76,6 @@ avg_u_r = 0 * Z
 Z_cm = 0.5
 R_cm = r_core
 t = 0
-fotoTimer = 0.0
 it = 0
 freqTimer = 0.0
 
@@ -88,9 +83,6 @@ vel_phi = 0 * Z
 u_z_divg = 0 * Z
 u_r_divg = 0 * Z
 vel_divg = 0 * Z
-u_z_breath = 0 * Z
-u_r_breath = 0 * Z
-u_breath_divg = 0 * Z
 
 #  create char function
 phi0 = -np.sqrt((Z - Z_cm) ** 2 + (R - R_cm) ** 2 / AR**2) + a
@@ -101,7 +93,6 @@ smooth_Heaviside(char_func, phi0, moll_zone)
 d = np.ma.array(char_func, mask=char_func < 0.5)
 
 FD_stokes_solver = FastDiagonalisationStokesSolver(grid_size_r, grid_size_z, dx)
-vtk_image_data, temp_vtk_array, writer = vtk_init(grid_size_z, grid_size_r)
 advect_vorticity_via_eno3 = gen_advect_vorticity_via_eno3(
     dx, grid_size_r, grid_size_z, num_threads=num_threads
 )
@@ -136,16 +127,14 @@ while t < tEnd:
         plt.savefig("snap_" + str("%0.4d" % (t * 100)) + ".png")
         plt.clf()
 
-        avg_psi[...] *= 0
-        avg_u_z[...] *= 0
-        avg_u_r[...] *= 0
+        avg_psi[...] = 0.0
+        avg_u_z[...] = 0.0
+        avg_u_r[...] = 0.0
 
     # move body and get char func
     R_cm_t = R_cm + e * a * np.sin(omega * t)
-    phi = a - np.sqrt((Z - Z_cm) ** 2 + (R - R_cm_t) ** 2 / AR**2)
-    char_func *= 0
+    phi[...] = a - np.sqrt((Z - Z_cm) ** 2 + (R - R_cm_t) ** 2 / AR**2)
     smooth_Heaviside(char_func, phi, moll_zone)
-    inside_solid = char_func > 0.5
 
     # solve for potential function and get velocity
     vel_divg[...] = U_0 * np.cos(omega * t) / R
@@ -159,12 +148,9 @@ while t < tEnd:
     # get dt
     dt = min(
         0.9 * dx**2 / 4 / nu,
-        CFL
-        * dx
-        / (np.amax(np.fabs(inside_solid * u_z) + np.fabs(inside_solid * u_r)) + eps),
+        CFL / (np.amax(np.fabs(u_z) + np.fabs(u_r)) + eps),
         0.01 * freqTimer_limit,
     )
-
     if freqTimer + dt > freqTimer_limit:
         dt = freqTimer_limit - freqTimer
 
@@ -178,8 +164,8 @@ while t < tEnd:
         brink_lam,
         dt,
         char_func,
-        u_z_breath,
-        U_0 * np.cos(omega * t) + u_r_breath,
+        0.0,
+        U_0 * np.cos(omega * t),
         u_z,
         u_r,
         u_z_pen,
@@ -207,6 +193,7 @@ while t < tEnd:
 
 os.system("rm -f 2D_advect.mp4")
 os.system(
-    "ffmpeg -r 20 -s 3840x2160 -f image2 -pattern_type glob -i 'snap*.png' -vcodec libx264 -crf 15 -pix_fmt yuv420p  2D_advect.mp4"
+    "ffmpeg -r 20 -s 3840x2160 -f image2 -pattern_type glob -i 'snap*.png' "
+    "-vcodec libx264 -crf 15 -pix_fmt yuv420p  2D_advect.mp4"
 )
 os.system("rm -f *png")
