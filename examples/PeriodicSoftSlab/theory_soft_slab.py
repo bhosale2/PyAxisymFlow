@@ -6,32 +6,24 @@ from sympy import (
     diff,
     lambdify,
     symbols,
-    re,
-    im,
     besselj,
     bessely,
-    simplify,
 )
-from scipy import optimize
 from sympy.solvers.solveset import linsolve
 
 
-def theory_axisymmetric_soft_slab_spatial(
-    L_f, L_s, Re, shear_rate, omega, nu, G, V_wall
-):
+def theory_axisymmetric_soft_slab_spatial(L_f, L_s, Re, shear_rate, omega, G, V_wall):
 
     # Theoretical Solution
     y, t1 = symbols("y, t1", real=True)
 
     # define params
-    L_s = 0.1
-    rho_f = 1
-    rho = 1
-    rho_s = rho * rho_f
+    rho_f = 1.0
+    rho_s = rho_f
 
     nu_f = shear_rate * omega * L_f**2 / Re
     mu_f = nu_f * rho_f
-    nu_s = 0.0
+    nu_s = nu_f
     mu_s = nu_s * rho_s
 
     lam1 = np.sqrt(1j * omega / nu_f)
@@ -73,10 +65,8 @@ def theory_axisymmetric_soft_slab_spatial(
     vel_sl = lambdify([y, t1], vel_s)
 
     res_y = 30
-    res_t = 21
     eps = 1e-20
     Y = np.linspace(eps, (L_s + L_f), res_y)
-    offset = np.pi / 2
     return Y, vel_sl, vel_fl
 
 

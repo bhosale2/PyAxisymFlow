@@ -3,9 +3,6 @@
 A simple example
 """
 
-import os
-import subprocess
-import sys
 
 import setuptools
 from setuptools import Extension, setup

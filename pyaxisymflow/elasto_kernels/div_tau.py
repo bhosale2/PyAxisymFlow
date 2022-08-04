@@ -1,5 +1,4 @@
 from numba import njit
-import numpy as np
 
 
 @njit(cache=True)
