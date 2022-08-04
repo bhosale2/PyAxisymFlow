@@ -33,7 +33,7 @@ grid_size_z = 256
 domain_AR = 0.5
 dx = 1.0 / grid_size_z
 grid_size_r = int(domain_AR * grid_size_z)
-LCFL = 0.1
+CFL = 0.1
 eps = np.finfo(float).eps
 num_threads = 4
 
@@ -50,7 +50,6 @@ rho_f = 1
 rho_s = rho_f
 freq = 16
 freqTimer_limit = 1 / freq
-# freqTimer_limit = 0.01
 omega = 2 * np.pi * freq
 nond_AC = 0.125
 e = 0.1
@@ -89,22 +88,11 @@ u_r = 0 * Z
 u_z_upen = 0 * Z
 u_r_upen = 0 * Z
 Z_double, R_double = np.meshgrid(z, z)
-z_particles = Z_double.copy()
-r_particles = R_double.copy()
-vort_double = 0 * Z_double
-vort_particles = 0 * vort_double
-Z_double, R_double = np.meshgrid(z, z)
-z_particles = Z_double.copy()
-r_particles = R_double.copy()
-vort_double = 0 * Z_double
-vort_particles = 0 * vort_double
 
 eta1 = Z.copy()
 eta2 = R.copy()
 eta1_double = Z_double.copy()
 eta2_double = R_double.copy()
-u_z_double = R_double.copy()
-u_r_double = R_double.copy()
 ball_phi_double = 0 * Z_double
 
 avg_psi = 0 * Z
@@ -121,15 +109,8 @@ advect_vorticity_via_eno3 = gen_advect_vorticity_via_eno3(
 )
 
 
-temp_gradient = 0 * Z
-pos_flux = 0 * Z
-neg_flux = 0 * Z
-mid_vorticity = 0 * Z
 bad_phi = 0 * Z
 phi_orig = 0 * Z
-temp_gradient = 0 * Z
-total_flux = 0 * Z
-total_flux_double = 0 * R_double
 sigma_s_11 = 0 * Z
 sigma_s_12 = 0 * Z
 sigma_s_22 = 0 * Z
@@ -156,10 +137,10 @@ while t < tEnd:
     compute_velocity_from_psi_unb(u_z, u_r, psi, R, dx)
 
     # plotting!!
-    if freqTimer >= 1 * freqTimer_limit:
+    if freqTimer >= freqTimer_limit:
         freqTimer = 0.0
-        plt.contour(Z, R, -avg_psi, levels=10, extend="both", cmap="Greys")
-        plt.contourf(Z, R, -avg_psi, levels=50, extend="both", cmap=lab_cmp)
+        plt.contour(Z, R, avg_psi, levels=10, extend="both", cmap="Greys")
+        plt.contourf(Z, R, avg_psi, levels=50, extend="both", cmap=lab_cmp)
         plt.colorbar()
         plt.contour(
             Z, R, inside_solid0 * eta1_0, levels=20, cmap="Greens", linewidths=2
@@ -180,14 +161,14 @@ while t < tEnd:
         plt.savefig("snap_" + str("%0.4d" % (t * 100)) + ".png")
         plt.clf()
 
-        avg_psi[...] *= 0
-        avg_phi[...] *= 0
+        avg_psi[...] = 0.0
+        avg_phi[...] = 0.0
 
     # get dt
     dt = min(
-        LCFL * dx / np.sqrt(G / rho_f),
+        CFL * dx / np.sqrt(G / rho_f),
+        CFL * dx / (np.amax(np.fabs(u_z) + np.fabs(u_r)) + eps),
         0.9 * dx**2 / 4 / nu,
-        LCFL / (np.amax(np.fabs(vorticity)) + eps),
     )
     if freqTimer + dt > freqTimer_limit:
         dt = freqTimer_limit - freqTimer
@@ -221,7 +202,6 @@ while t < tEnd:
     advect_vorticity_via_eno3(vorticity, u_z, u_r, dt)
 
     # get char function
-    ball_char_func = 0 * Z
     smooth_Heaviside(ball_char_func, ball_phi, moll_zone)
     inside_solid[...] = ball_char_func > 0.5
 
@@ -262,7 +242,6 @@ while t < tEnd:
 
     Z_cm_t = Z_cm + e * r_ball * np.sin(omega * t)
     tether_phi[...] = -np.sqrt((Z - Z_cm_t) ** 2 + (R - R_cm) ** 2) + fixed_rad
-    tether_char_func = 0 * Z
     smooth_Heaviside(tether_char_func, tether_phi, moll_zone)
 
     # Brinkman_Penalization
@@ -272,7 +251,7 @@ while t < tEnd:
         brink_lam,
         dt,
         tether_char_func,
-        U_0 * np.cos(omega * (t)),
+        U_0 * np.cos(omega * t),
         0.0,
         u_z_upen,
         u_r_upen,
@@ -293,7 +272,8 @@ while t < tEnd:
     it += 1
     if it % 100 == 0:
         print(t, np.amax(vorticity))
-os.system("rm -f 2D_advect.mp4")
+os.system("rm -f flow.mp4")
 os.system(
-    "ffmpeg -r 20 -s 3840x2160 -f image2 -pattern_type glob -i 'snap*.png' -vcodec libx264 -crf 15 -pix_fmt yuv420p  2D_advect.mp4"
+    "ffmpeg -r 20 -s 3840x2160 -f image2 -pattern_type glob -i 'snap*.png' "
+    "-vcodec libx264 -crf 15 -pix_fmt yuv420p  2D_advect.mp4"
 )

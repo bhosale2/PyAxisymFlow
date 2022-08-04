@@ -1,7 +1,6 @@
 from numba import njit
-import numpy as np
 
-# @njit(fastmath=True)
+
 @njit(cache=True)
 def solid_sigma(
     sigma_s_11,
