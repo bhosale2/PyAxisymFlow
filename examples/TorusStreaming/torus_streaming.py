@@ -163,8 +163,6 @@ while t < tEnd:
     )
     if freqTimer + dt > freqTimer_limit:
         dt = freqTimer_limit - freqTimer
-    if t + dt > tEnd:
-        dt = tEnd - t
 
     # integrate averaged fields
     avg_psi[...] += psi * dt
