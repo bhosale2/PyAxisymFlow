@@ -145,6 +145,7 @@ while t < tEnd:
     phi = a - np.sqrt((Z - Z_cm) ** 2 + (R - R_cm_t) ** 2 / AR**2)
     char_func *= 0
     smooth_Heaviside(char_func, phi, moll_zone)
+    inside_solid = char_func > 0.5
 
     # solve for potential function and get velocity
     vel_divg[...] = U_0 * np.cos(omega * t) / R
@@ -158,9 +159,12 @@ while t < tEnd:
     # get dt
     dt = min(
         0.9 * dx**2 / 4 / nu,
-        CFL / (np.amax(np.fabs(vorticity)) + eps),
+        CFL
+        * dx
+        / (np.amax(np.fabs(inside_solid * u_z) + np.fabs(inside_solid * u_r)) + eps),
         0.01 * freqTimer_limit,
     )
+
     if freqTimer + dt > freqTimer_limit:
         dt = freqTimer_limit - freqTimer
 
