@@ -199,8 +199,6 @@ while t < tEnd:
     t += dt
     it += 1
     freqTimer = freqTimer + dt
-    if t > fotoTimer_start and t < fotoTimer_end:
-        fotoTimer += dt
     if it % 100 == 0:
         print(t, np.amax(vorticity))
 
