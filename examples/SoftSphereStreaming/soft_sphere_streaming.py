@@ -39,8 +39,6 @@ num_threads = 4
 
 plt.figure(figsize=(5 / domain_AR, 5))
 # Parameters
-# brink_moll_zone = dx * 2 ** 0.5
-# brink_lam = 1e4
 brink_moll_zone = dx * 2**0.5
 brink_lam = 1e8
 moll_zone = dx * 2
@@ -61,13 +59,9 @@ Rs = (e / nond_AC) ** 2
 nu = e * U_0 * r_ball / Rs
 no_cycles = 30
 tEnd = no_cycles / freq
-Cauchy = 0.05
+Cauchy = 0.05 * 2
 G = e * rho_f * (r_ball * omega) ** 2 / Cauchy
-zeta = 0.5
-
-Cauchy_max = 0.0125
-G_max = e * rho_f * (r_ball * omega) ** 2 / Cauchy_max
-K_tether = G_max / (dx**2)
+zeta = 0.25
 
 # Build discrete domain
 z = np.linspace(0 + dx / 2, 1 - dx / 2, grid_size_z)
@@ -145,6 +139,10 @@ eta1r = 0 * Z
 eta2r = 0 * Z
 tau_z = 0 * Z
 tau_r = 0 * Z
+eta1_0 = eta1.copy()
+eta2_0 = eta2.copy()
+inside_solid0 = inside_solid.copy()
+
 
 # solver loop
 while t < tEnd:
@@ -162,10 +160,13 @@ while t < tEnd:
         freqTimer = 0.0
         plt.contour(Z, R, -avg_psi, levels=10, extend="both", cmap="Greys")
         plt.contourf(Z, R, -avg_psi, levels=50, extend="both", cmap=lab_cmp)
-        # plt.contourf(Z, R, -psi, levels=50, extend="both", cmap=lab_cmp)
         plt.colorbar()
-        plt.contour(Z, R, inside_solid * eta1, levels=20, cmap="Greens", linewidths=2)
-        plt.contour(Z, R, inside_solid * eta2, levels=20, cmap="Purples", linewidths=2)
+        plt.contour(
+            Z, R, inside_solid0 * eta1_0, levels=20, cmap="Greens", linewidths=2
+        )
+        plt.contour(
+            Z, R, inside_solid0 * eta2_0, levels=20, cmap="Purples", linewidths=2
+        )
         plt.contour(
             Z,
             R,
@@ -175,47 +176,10 @@ while t < tEnd:
             ],
             colors="k",
         )
-        plt.contour(
-            Z,
-            R,
-            tether_phi,
-            levels=[
-                0.0,
-            ],
-            colors="k",
-        )
-        # plt.contourf(Z, R, vorticity, levels=50, extend="both", cmap=lab_cmp)
-        # plt.colorbar()
-
-        # plt.contour(
-        #     Z,
-        #     R,
-        #     ball_phi,
-        #     levels=[
-        #         0.0,
-        #     ],
-        #     colors="k",
-        # )
-        # plt.contour(
-        #     Z,
-        #     R,
-        #     tether_phi,
-        #     levels=[
-        #         0.0,
-        #     ],
-        #     colors="k",
-        # )
         plt.gca().set_aspect("equal")
         plt.savefig("snap_" + str("%0.4d" % (t * 100)) + ".png")
         plt.clf()
-        # vtk_write(
-        #     "bubble_avg_" + str("%0.4d" % (t * 100)) + ".vti",
-        #     vtk_image_data,
-        #     temp_vtk_array,
-        #     writer,
-        #     ["avg_part_char_func", "avg_psi", "avg_vort"],
-        #     [avg_part_char_func, avg_psi, avg_vort],
-        # )
+
         avg_psi[...] *= 0
         avg_phi[...] *= 0
 
@@ -296,19 +260,18 @@ while t < tEnd:
         vorticity, tau_z, tau_r, sigma_s_11, sigma_s_12, sigma_s_22, R, dt, dx
     )
 
-    # soft forcing
     Z_cm_t = Z_cm + e * r_ball * np.sin(omega * t)
     tether_phi[...] = -np.sqrt((Z - Z_cm_t) ** 2 + (R - R_cm) ** 2) + fixed_rad
     tether_char_func = 0 * Z
     smooth_Heaviside(tether_char_func, tether_phi, moll_zone)
 
-    # Brinkman_Penalization (Method1 to incorporate pinned zone)
+    # Brinkman_Penalization
     u_z_upen[...] = u_z.copy()
     u_r_upen[...] = u_r.copy()
     brinkmann_penalize(
         brink_lam,
         dt,
-        ball_char_func,
+        tether_char_func,
         U_0 * np.cos(omega * (t)),
         0.0,
         u_z_upen,
@@ -320,16 +283,6 @@ while t < tEnd:
         penal_vorticity, u_z - u_z_upen, u_r - u_r_upen, dx
     )
     vorticity[...] += penal_vorticity
-
-    # Spring Forcing (Method2 to incorporate pinned zone)
-
-    # compute_vorticity_from_velocity_unb(
-    #     penal_vorticity,
-    #     tether_char_func * (eta1 - (Z - e * r_ball * np.sin(omega * t))),
-    #     tether_char_func * (eta2 - R),
-    #     dx,
-    # )
-    # vorticity[...] += K_tether * dt * penal_vorticity
 
     # diffuse vorticity
     diffusion_RK2_unb(vorticity, temp_vorticity, R, nu, dt, dx)
