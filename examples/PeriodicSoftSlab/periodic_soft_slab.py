@@ -32,7 +32,10 @@ from pyaxisymflow.elasto_kernels.advect_refmap_via_eno3 import (
     gen_advect_refmap_via_eno3_periodic,
 )
 from extrap_LS import extrap_LS
-from theory_soft_slab import *
+from theory_soft_slab import (
+    theory_axisymmetric_soft_slab_spatial,
+    theory_axisymmetric_soft_slab_temporal,
+)
 
 
 # Build discrete domain
