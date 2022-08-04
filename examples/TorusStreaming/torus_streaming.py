@@ -51,8 +51,6 @@ snaps_per_cycle = 40
 fotoTimer_limit = 1 / freq / snaps_per_cycle
 snap_cycle_start = 19
 snap_cycle_end = 20
-fotoTimer_start = snap_cycle_start / freq
-fotoTimer_end = snap_cycle_end / freq
 
 omega = 2 * np.pi * freq
 d_AC_by_r_core = 0.11235582096628798
