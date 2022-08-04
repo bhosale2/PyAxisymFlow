@@ -1,10 +1,9 @@
 import numpy as np
-from set_sim_params import dx, grid_size_z, grid_size_r
 import scipy.sparse as spp
 import scipy.sparse.linalg as sppla
 
 
-def stokes_phi_init(R):
+def stokes_phi_init(grid_size_z, grid_size_r, dx, R):
     """
     solves the Stokes potential function pseudo Poisson:
     d^2 phi / dr^2 + d^2 phi / dx^2 + d phi / dr / r
@@ -77,7 +76,7 @@ def stokes_phi_solve_gmres(phi, FDM_matrix, precond_matrix, vel_divg):
     phi = phi.reshape(grid_size_r, grid_size_z)
 
 
-def stokes_phi_solve_LU(phi, LU_decomp, vel_divg):
+def stokes_phi_solve_LU(phi, LU_decomp, vel_divg, grid_size_z, grid_size_r):
     phi = phi.reshape(
         -1,
     )
