@@ -1,6 +1,7 @@
 from numba import njit
 import numpy as np
 
+
 @njit(cache=True)
 def update_vorticity_from_solid_stress(
     vorticity, tau_z, tau_r, tau11, tau12, tau22, R, dt, dx
@@ -33,8 +34,9 @@ def update_vorticity_from_solid_stress(
         / (2 * dx)
     )
 
+
 def update_vorticity_from_solid_stress_periodic(
-    vorticity, tau_z, tau_r, tau11, tau12, tau22, R, dt, dx,per_communicator
+    vorticity, tau_z, tau_r, tau11, tau12, tau22, R, dt, dx, per_communicator
 ):
     per_communicator(tau11)
     per_communicator(tau12)
@@ -69,5 +71,3 @@ def update_vorticity_from_solid_stress_periodic(
         * (tau_r[1:-1, 2:] - tau_r[1:-1, :-2] - tau_z[2:, 1:-1] + tau_z[:-2, 1:-1])
         / (2 * dx)
     )
-    
-    
