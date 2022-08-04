@@ -163,8 +163,6 @@ while t < tEnd:
     )
     if freqTimer + dt > freqTimer_limit:
         dt = freqTimer_limit - freqTimer
-    if fotoTimer + dt > fotoTimer_limit:
-        dt = fotoTimer_limit - fotoTimer
     if t + dt > tEnd:
         dt = tEnd - t
 
