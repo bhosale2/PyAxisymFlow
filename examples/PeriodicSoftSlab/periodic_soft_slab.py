@@ -1,6 +1,5 @@
 import numpy as np
 import matplotlib.pyplot as plt
-import skfmm
 import os
 from pyaxisymflow.utils.custom_cmap import lab_cmp
 from pyaxisymflow.kernels.brinkmann_penalize import brinkmann_penalize
@@ -13,7 +12,6 @@ from pyaxisymflow.kernels.compute_vorticity_from_velocity import (
 from pyaxisymflow.kernels.smooth_Heaviside import smooth_Heaviside
 from pyaxisymflow.kernels.kill_boundary_vorticity_sine import (
     kill_boundary_vorticity_sine_r,
-    kill_boundary_vorticity_sine_z,
 )
 from pyaxisymflow.kernels.advect_vorticity_via_eno3 import (
     gen_advect_vorticity_via_eno3_periodic,
@@ -34,12 +32,10 @@ from pyaxisymflow.elasto_kernels.advect_refmap_via_eno3 import (
     gen_advect_refmap_via_eno3_periodic,
 )
 from extrap_LS import extrap_LS
-
-import numpy as np
-import matplotlib.pyplot as plt
-from scipy import optimize
-from sympy.solvers.solveset import linsolve
-from theory_soft_slab import *
+from theory_soft_slab import (
+    theory_axisymmetric_soft_slab_spatial,
+    theory_axisymmetric_soft_slab_temporal,
+)
 
 
 # Build discrete domain
@@ -52,10 +48,9 @@ dx = max_r / grid_size_r
 z = np.linspace(0 + dx / 2, max_z - dx / 2, grid_size_z)
 r = np.linspace(0 + dx / 2, max_r - dx / 2, grid_size_r)
 Z, R = np.meshgrid(z, r)
-LCFL = 0.1
+CFL = 0.1
 eps = np.finfo(float).eps
 
-# plt.figure(figsize=(5 / domain_AR, 5))
 # Parameters
 brink_lam = 1e4
 moll_zone = np.sqrt(2) * dx
@@ -84,13 +79,11 @@ nu = shear_rate * omega * L_f**2 / Re
 ghost_size = 2
 per_communicator1 = gen_periodic_boundary_ghost_comm(ghost_size)
 per_communicator2 = gen_periodic_boundary_ghost_comm_eta(ghost_size, max_z, dx)
-fotoTimer_limit = 0.001
 Er = 0.25
 G = nu * shear_rate * omega / Er
 rho_f = 1
 r_ball = 0.1
 # Build discrete domain
-extrap_tol = 1e-5
 y_range = np.linspace(0, R_tube, 100)
 # load initial conditions
 
@@ -112,24 +105,18 @@ u_z = 0 * Z
 u_r = 0 * Z
 u_z_upen = 0 * Z
 u_r_upen = 0 * Z
-Z_double, R_double = np.meshgrid(z, z)
-vort_double = 0 * Z_double
 eta1 = Z.copy()
 eta2 = R.copy()
-fotoTimer_limit = 0.001
 t = 0
 it = 0
-freqTimer = 0.0
 
 Y, vel_sl, vel_fl = theory_axisymmetric_soft_slab_spatial(
-    L_f, L_s, Re, shear_rate, omega, nu, G, V_wall
+    L_f, L_s, Re, shear_rate, omega, G, V_wall
 )
 
 
-mid_vorticity = 0 * Z
 bad_phi = 0 * Z
 phi_orig = 0 * Z
-temp_gradient = 0 * Z
 sigma_s_11 = 0 * Z
 sigma_s_12 = 0 * Z
 sigma_s_22 = 0 * Z
@@ -153,7 +140,6 @@ advect_refmap_via_eno3_periodic = gen_advect_refmap_via_eno3_periodic(
 advect_vorticity_via_eno3_periodic = gen_advect_vorticity_via_eno3_periodic(
     dx, grid_size_r, grid_size_z, per_communicator1
 )
-freqTimer = freqTimer_limit
 
 
 # solver loop
@@ -161,9 +147,9 @@ while t < tEnd:
 
     # get dt
     dt = min(
-        LCFL * dx / np.sqrt(G / rho_f),
+        CFL * dx / np.sqrt(G / rho_f),
         0.9 * dx**2 / 4 / nu,
-        LCFL / (np.amax(np.fabs(vorticity)) + eps),
+        CFL * dx / (np.amax(np.fabs(u_z) + np.fabs(u_r)) + eps),
     )
     if freqTimer + dt > freqTimer_limit:
         dt = freqTimer_limit - freqTimer
@@ -284,9 +270,9 @@ while t < tEnd:
         per_communicator2,
     )
 
-    sigma_s_11[...] = (ball_char_func) * sigma_s_11
-    sigma_s_12[...] = (ball_char_func) * sigma_s_12
-    sigma_s_22[...] = (ball_char_func) * sigma_s_22
+    sigma_s_11[...] = ball_char_func * sigma_s_11
+    sigma_s_12[...] = ball_char_func * sigma_s_12
+    sigma_s_22[...] = ball_char_func * sigma_s_22
 
     update_vorticity_from_solid_stress_periodic(
         vorticity,
@@ -314,5 +300,6 @@ while t < tEnd:
         print(t, np.amax(vorticity))
 os.system("rm -f 2D_advect.mp4")
 os.system(
-    "ffmpeg -r 20 -s 3840x2160 -f image2 -pattern_type glob -i 'snap*.png' -vcodec libx264 -crf 15 -pix_fmt yuv420p  2D_advect.mp4"
+    "ffmpeg -r 20 -s 3840x2160 -f image2 -pattern_type glob -i 'snap*.png' "
+    "-vcodec libx264 -crf 15 -pix_fmt yuv420p  2D_advect.mp4"
 )
