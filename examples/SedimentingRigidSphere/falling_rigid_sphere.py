@@ -3,13 +3,11 @@ import matplotlib.pyplot as plt
 import os
 from pyaxisymflow.utils.plotset import plotset
 from pyaxisymflow.utils.custom_cmap import lab_cmp
-from pyaxisymflow.utils.dump_vtk import vtk_init, vtk_write
 from pyaxisymflow.kernels.brinkmann_penalize import brinkmann_penalize
 from pyaxisymflow.kernels.compute_velocity_from_psi import compute_velocity_from_psi_unb
 from pyaxisymflow.kernels.compute_vorticity_from_velocity import (
     compute_vorticity_from_velocity_unb,
 )
-from pyaxisymflow.kernels.advect_particle import advect_vorticity_via_particles
 from pyaxisymflow.kernels.compute_forces import compute_force_on_body
 from pyaxisymflow.kernels.smooth_Heaviside import smooth_Heaviside
 from pyaxisymflow.kernels.kill_boundary_vorticity_sine import (
