@@ -43,7 +43,6 @@ tEnd = 2
 T_ramp = 20 * r_cyl / U_0
 rho_f = 1
 
-
 # Build discrete domain
 z = np.linspace(0 + dx / 2, 1 - dx / 2, grid_size_z)
 r = np.linspace(0 + dx / 2, domain_AR - dx / 2, grid_size_r)
@@ -64,7 +63,6 @@ it = 0
 Z_cm = 0.60
 R_cm = 0.0
 t = 0.0
-T = []
 rho_s = 1.1
 #  create char function
 phi0 = -np.sqrt((Z - Z_cm) ** 2 + (R - R_cm) ** 2) + r_cyl
@@ -74,8 +72,8 @@ part_mass = 2 * np.pi * dx * dx * rho_s * np.sum(char_func * R)
 part_vol = 2 * np.pi * dx * dx * np.sum(char_func * R)
 g = (rho_s - rho_f) * 9.81
 nu = 0.01
-t_vel = part_vol * g / (6 * np.pi * nu * r_cyl)
-print(rho_f * t_vel * 2 * r_cyl / nu)
+terminal_vel = part_vol * g / (6 * np.pi * nu * r_cyl)
+print(rho_f * terminal_vel * 2 * r_cyl / nu)
 part_Z_cm_old = Z_cm
 part_Z_cm_new = Z_cm
 part_Z_cm = Z_cm
@@ -135,7 +133,7 @@ while t < tEnd:
         plt.close("all")
 
     # get dt
-    dt = 1 * min(
+    dt = min(
         0.9 * dx**2 / 4 / nu,
         CFL / (np.amax(np.fabs(u_z) + np.fabs(u_r)) + eps),
     )
@@ -155,9 +153,10 @@ while t < tEnd:
         R, char_func, rho_f, brink_lam, u_z, U_z_cm_part, part_vol, dt, diff
     )
     F_total = 2 * np.pi * dx * dx * F_pen + F_un
-    phi0 = -np.sqrt((Z - part_Z_cm) ** 2 + (R - R_cm) ** 2) + r_cyl
-    char_func = 0 * Z
+    phi0[...] = -np.sqrt((Z - part_Z_cm) ** 2 + (R - R_cm) ** 2) + r_cyl
     smooth_Heaviside(char_func, phi0, moll_zone)
+
+    # advect vorticity
     advect_vorticity_via_eno3(vorticity, u_z, u_r, dt)
     # diffuse vorticity
     diffusion_RK2_unb(vorticity, temp_vorticity, R, nu, dt, dx)
@@ -177,11 +176,9 @@ while t < tEnd:
     U_z_cm_part_old = U_z_cm_part
     U_z_cm_part += dt * ((-g + (F_total / part_mass)))
     diff = dt * (-g / rho_s + (F_total / part_mass))
-    part_Z_cm_new = part_Z_cm
     part_Z_cm += U_z_cm_part_old * dt + (
         0.5 * dt * dt * (-g / rho_s + (F_total / part_mass))
     )
-    part_Z_cm_old = part_Z_cm_new
     T = np.append(T, t)
     U_z_cm = np.append(U_z_cm, U_z_cm_part)
     CD = np.append(CD, Cd)
@@ -198,7 +195,7 @@ np.savetxt(
     "velocity_drag.csv",
     np.c_[
         np.array(T),
-        np.array(U_z_cm / t_vel),
+        np.array(U_z_cm / terminal_vel),
         np.array(CD),
     ],
     delimiter=",",
