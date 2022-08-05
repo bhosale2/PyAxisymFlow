@@ -3,7 +3,7 @@ import numpy.linalg as la
 import scipy.sparse as spp
 
 
-class FastDiagonalisationStokesSolver:
+class FastDiagonalisationPotentialSolver:
     def __init__(
         self,
         grid_size_r,
@@ -45,21 +45,21 @@ class FastDiagonalisationStokesSolver:
         inv_dx2 = self.real_dtype(1 / self.dx / self.dx)
         inv_2dx = self.real_dtype(1 / 2 / self.dx)
         poisson_matrix_z = inv_dx2 * spp.diags(
-            [-1, 2, -1],
+            [1, -2, 1],
             [-1, 0, 1],
             shape=(self.grid_size_z, self.grid_size_z),
             format="csr",
         )
         poisson_matrix_z = poisson_matrix_z.toarray().astype(self.real_dtype)
         poisson_matrix_r = inv_dx2 * spp.diags(
-            [-1, 2, -1],
+            [1, -2, 1],
             [-1, 0, 1],
             shape=(self.grid_size_r, self.grid_size_r),
             format="csr",
         )
         poisson_matrix_r = poisson_matrix_r.toarray().astype(self.real_dtype)
         derivative_matrix_r = inv_2dx * spp.diags(
-            [1, -1], [-1, 1], shape=(self.grid_size_r, self.grid_size_r), format="csr"
+            [-1, 1], [-1, 1], shape=(self.grid_size_r, self.grid_size_r), format="csr"
         )
         derivative_matrix_r = derivative_matrix_r.toarray().astype(self.real_dtype)
         derivative_matrix_r[...] = derivative_matrix_r / self.radial_coord
@@ -79,22 +79,11 @@ class FastDiagonalisationStokesSolver:
         if self.bc_type == "homogenous_neumann_along_z_and_r":
             # neumann at z=0 and r/z=L, but the modification below operates on
             # nodes at z=dx/2 and r/z=L-dx/2, because of the grid shift in sims.
-            poisson_matrix_z[0, 0] = inv_dx2
-            poisson_matrix_z[-1, -1] = inv_dx2
-            poisson_matrix_r[-1, -1] = inv_dx2
+            poisson_matrix_z[0, 0] = -inv_dx2
+            poisson_matrix_z[-1, -1] = -inv_dx2
+            poisson_matrix_r[-1, -1] = -inv_dx2
             # neumann at R_max
             derivative_matrix_r[-1, -2] = 0
-
-        elif self.bc_type == "homogenous_neumann_along_r_and_periodic_along_z":
-            poisson_matrix_z[0, -1] = poisson_matrix_z[0, 1]
-            poisson_matrix_z[-1, 0] = poisson_matrix_z[-1, -2]
-            poisson_matrix_r[-1, -1] = inv_dx2
-            # neumann at R_max
-            derivative_matrix_r[-1, -2] = 0
-
-        elif self.bc_type == "homogenous_dirichlet_along_r_and_periodic_along_z":
-            poisson_matrix_z[0, -1] = poisson_matrix_z[0, 1]
-            poisson_matrix_z[-1, 0] = poisson_matrix_z[-1, -2]
 
     def compute_spectral_decomp_of_poisson_matrices(
         self,
@@ -106,7 +95,7 @@ class FastDiagonalisationStokesSolver:
         Compute spectral decomposition (eigenvalue and vectors) of the
         Poisson matrices
         """
-        eig_vals_r, eig_vecs_r = la.eig(poisson_matrix_r - derivative_matrix_r)
+        eig_vals_r, eig_vecs_r = la.eig(poisson_matrix_r + derivative_matrix_r)
         # sort eigenvalues in decreasing order
         idx = eig_vals_r.argsort()[::-1]
         eig_vals_r[...] = eig_vals_r[idx]
@@ -130,14 +119,14 @@ class FastDiagonalisationStokesSolver:
     def solve(self, solution_field, rhs_field):
         """
         solves the Stokes stream function pseudo Poisson:
-        -d^2 solution_field / dr^2 - d^2 solution_field / dx^2
+        d^2 solution_field / dr^2 + d^2 solution_field / dx^2
         + d solution_field / dr / r = rhs_field
         """
         # transform to spectral space ("forward transform")
         la.multi_dot(
             [
                 self.inv_of_eig_vecs_r,
-                np.multiply(rhs_field, self.radial_coord),
+                rhs_field,
                 self.tranpose_of_inv_of_eig_vecs_z,
             ],
             out=self.spectral_field_buffer,

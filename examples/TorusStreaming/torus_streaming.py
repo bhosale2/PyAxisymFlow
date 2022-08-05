@@ -17,9 +17,8 @@ from pyaxisymflow.kernels.diffusion_RK2 import diffusion_RK2_unb
 from pyaxisymflow.kernels.FastDiagonalisationStokesSolver import (
     FastDiagonalisationStokesSolver,
 )
-from pyaxisymflow.kernels.FDM_stokes_phi_solve import (
-    stokes_phi_init,
-    stokes_phi_solve_LU,
+from pyaxisymflow.kernels.FastDiagonalisationPotentialSolver import (
+    FastDiagonalisationPotentialSolver,
 )
 from pyaxisymflow.kernels.advect_vorticity_via_eno3 import gen_advect_vorticity_via_eno3
 from pyaxisymflow.kernels.compute_velocity_from_phi import compute_velocity_from_phi_unb
@@ -93,10 +92,10 @@ smooth_Heaviside(char_func, phi0, moll_zone)
 d = np.ma.array(char_func, mask=char_func < 0.5)
 
 FD_stokes_solver = FastDiagonalisationStokesSolver(grid_size_r, grid_size_z, dx)
+FD_potential_solver = FastDiagonalisationPotentialSolver(grid_size_r, grid_size_z, dx)
 advect_vorticity_via_eno3 = gen_advect_vorticity_via_eno3(
     dx, grid_size_r, grid_size_z, num_threads=num_threads
 )
-_, _, LU_decomp_phi = stokes_phi_init(grid_size_z, grid_size_r, dx, R)
 
 # solver loop
 while t < tEnd:
@@ -138,9 +137,7 @@ while t < tEnd:
 
     # solve for potential function and get velocity
     vel_divg[...] = U_0 * np.cos(omega * t) / R
-    stokes_phi_solve_LU(
-        vel_phi, LU_decomp_phi, char_func * vel_divg, grid_size_z, grid_size_r
-    )
+    FD_potential_solver.solve(solution_field=vel_phi, rhs_field=(char_func * vel_divg))
     compute_velocity_from_phi_unb(u_z_divg, u_r_divg, vel_phi, dx)
     u_z[...] += u_z_divg
     u_r[...] += u_r_divg
