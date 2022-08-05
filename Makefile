@@ -16,6 +16,8 @@ poetry-remove:
 .PHONY: install
 install:
 	poetry install
+	# install pyaxisymflow.core deps
+	cd pyaxisymflow/core/src && make clean && make bind
 
 .PHONY: install_with_new_dependency
 install_with_new_dependency:

@@ -28,6 +28,10 @@ matplotlib = "^3.3.2"
 seaborn = "^0.11"
 vtk = "9.2.0rc2"
 scikit-fmm = "2022.3.26"
+# core deps
+cppheaderparser = "^2.7"
+pybind11 = "^2.9"
+pyyaml = "^6.0"
 
 [tool.poetry.dev-dependencies]
 black = "^22.3.0"
