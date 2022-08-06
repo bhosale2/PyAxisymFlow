@@ -3,7 +3,7 @@
 
 if command -v python3 >/dev/null 2>&1; then
 	# TODO Make it uniform with python and don't have definitions in both languages
-	declare -a cpp_header_files=("weno_kernel.hpp" "weno_2D_kernel.hpp" "mesh_to_particles.hpp" "particles_to_mesh.hpp" "extrapolate_using_least_squares.hpp" "reinitialize_level_set.hpp")
+	declare -a cpp_header_files=("mesh_to_particles.hpp" "particles_to_mesh.hpp" "extrapolate_using_least_squares.hpp")
 	for headerfile in "${cpp_header_files[@]}"; do
 		./bindthem.py "${headerfile}"
 	done
