@@ -113,28 +113,15 @@ class get_pybind_include(object):
 
 headers = ["relaxation.hpp"]
 ext_modules_names = [
-    "weno_kernel",
-    "weno_2D_kernel",
     "mesh_to_particles",
     "particles_to_mesh",
     "extrapolate_using_least_squares",
-    "reinitialize_level_set",
 ]
 ext_modules_sources = [
-    "weno_kernel_bind.cpp",
-    "weno_2D_kernel_bind.cpp",
     "mesh_to_particles_bind.cpp",
     "particles_to_mesh_bind.cpp",
     "extrapolate_using_least_squares_bind.cpp",
-    "reinitialize_level_set_bind.cpp",
 ]
-# ext_modules_names =["reinitialize_level_set"]
-# ext_modules_sources = ["reinitialize_level_set_bind.cpp"]
-
-# ext_modules = [Extension('weno_kernel',
-#                          sources=['weno_kernel_bind.cpp','weno_2D_kernel_bind.cpp'],
-#                          include_dirs=[get_pybind_include(), get_pybind_include(user=True)],
-#                          language='c++')]
 
 ext_modules = [
     Extension(

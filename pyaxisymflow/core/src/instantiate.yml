@@ -2,24 +2,6 @@ instantiate:
 - types:
     - [double]
   functions:
-    - weno5_FD_1D
-    - weno5_FD_1D_novec
-    - weno5_FD_1D_novec_optimized
-    - weno5_FD_1D_all_novec
-    - weno5_FD_1D_all_novec_optimized
-    - weno5_FD_1D_all_novec_optimized_two
-
-- types:
-    - [double]
-  functions:
-    - weno5_FD_2D_novec
-    - weno5_FD_2D_all_novec
-    - test_two_dimensions_memory_layout
-    - weno5_FD_2D_all_novec_reverse_iteration
-
-- types:
-    - [double]
-  functions:
     - mesh_to_particles_1D_mp4
     - wrap_particles_around_1D_domain
     - mesh_to_particles_2D_linear_kernel
@@ -50,10 +32,3 @@ instantiate:
   functions:
     - extrapolate_using_least_squares_till_first_order
     - extrapolate_using_least_squares_till_second_order
-
-# Specializations for the reinitialization kernel
-- types:
-    - [double]
-  functions:
-    - reinitialize_level_set_using_hamilton_jacobi
-    - reinitialize_level_set_using_hamilton_jacobi_heap_memory
