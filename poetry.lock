@@ -60,15 +60,15 @@ tests = ["coverage[toml] (>=5.0.2)", "hypothesis", "pympler", "pytest (>=4.3.0)"
 tests_no_zope = ["coverage[toml] (>=5.0.2)", "hypothesis", "pympler", "pytest (>=4.3.0)", "mypy (>=0.900,!=0.940)", "pytest-mypy-plugins", "cloudpickle"]
 
 [[package]]
-name = "autoflake"
-version = "1.4"
-description = "Removes unused imports and unused variables"
+name = "autoflake8"
+version = "0.3.2"
+description = "Tool to automatically fix some issues reported by flake8 (forked from autoflake)."
 category = "dev"
 optional = false
-python-versions = "*"
+python-versions = ">=3.7,<4.0"
 
 [package.dependencies]
-pyflakes = ">=1.1.0"
+pyflakes = ">=2.3.0"
 
 [[package]]
 name = "black"
@@ -184,25 +184,25 @@ pyflakes = ">=2.4.0,<2.5.0"
 
 [[package]]
 name = "fonttools"
-version = "4.35.0"
+version = "4.36.0"
 description = "Tools to manipulate font files"
 category = "main"
 optional = false
 python-versions = ">=3.7"
 
 [package.extras]
-woff = ["brotli (>=1.0.1)", "brotlicffi (>=0.8.0)", "zopfli (>=0.1.4)"]
-unicode = ["unicodedata2 (>=14.0.0)"]
-ufo = ["fs (>=2.2.0,<3)"]
-type1 = ["xattr"]
-symfont = ["sympy"]
-repacker = ["uharfbuzz (>=0.23.0)"]
-plot = ["matplotlib"]
-pathops = ["skia-pathops (>=0.5.0)"]
-lxml = ["lxml (>=4.0,<5)"]
-interpolatable = ["munkres", "scipy"]
+all = ["fs (>=2.2.0,<3)", "lxml (>=4.0,<5)", "zopfli (>=0.1.4)", "lz4 (>=1.7.4.2)", "matplotlib", "sympy", "skia-pathops (>=0.5.0)", "uharfbuzz (>=0.23.0)", "brotlicffi (>=0.8.0)", "scipy", "brotli (>=1.0.1)", "munkres", "unicodedata2 (>=14.0.0)", "xattr"]
 graphite = ["lz4 (>=1.7.4.2)"]
-all = ["xattr", "unicodedata2 (>=14.0.0)", "munkres", "brotli (>=1.0.1)", "scipy", "brotlicffi (>=0.8.0)", "uharfbuzz (>=0.23.0)", "skia-pathops (>=0.5.0)", "sympy", "matplotlib", "lz4 (>=1.7.4.2)", "zopfli (>=0.1.4)", "lxml (>=4.0,<5)", "fs (>=2.2.0,<3)"]
+interpolatable = ["scipy", "munkres"]
+lxml = ["lxml (>=4.0,<5)"]
+pathops = ["skia-pathops (>=0.5.0)"]
+plot = ["matplotlib"]
+repacker = ["uharfbuzz (>=0.23.0)"]
+symfont = ["sympy"]
+type1 = ["xattr"]
+ufo = ["fs (>=2.2.0,<3)"]
+unicode = ["unicodedata2 (>=14.0.0)"]
+woff = ["zopfli (>=0.1.4)", "brotlicffi (>=0.8.0)", "brotli (>=1.0.1)"]
 
 [[package]]
 name = "frozenlist"
@@ -666,7 +666,7 @@ multidict = ">=4.0"
 [metadata]
 lock-version = "1.1"
 python-versions = ">=3.8,<3.11"
-content-hash = "d112b688656ff7df676def2125ba9392cf1e091ec3af721def9dbfa5a0a122d6"
+content-hash = "d56d75d33c464241c1e94d38313405f3b0062eb33dec2dfefa6d4df544ca771c"
 
 [metadata.files]
 aiohttp = [
@@ -756,8 +756,9 @@ async-timeout = [
     {file = "async_timeout-4.0.2-py3-none-any.whl", hash = "sha256:8ca1e4fcf50d07413d66d1a5e416e42cfdf5851c981d679a09851a6853383b3c"},
 ]
 attrs = []
-autoflake = [
-    {file = "autoflake-1.4.tar.gz", hash = "sha256:61a353012cff6ab94ca062823d1fb2f692c4acda51c76ff83a8d77915fba51ea"},
+autoflake8 = [
+    {file = "autoflake8-0.3.2-py3-none-any.whl", hash = "sha256:db2f068766db0a747833198aee37317c3eae114948130e7a54aa5743f9261709"},
+    {file = "autoflake8-0.3.2.tar.gz", hash = "sha256:4465a10186e29830eb5df5ada7eed29fdc0918b7d8eafbb06a681236639ca695"},
 ]
 black = []
 cfgv = []
@@ -781,8 +782,8 @@ flake8 = [
     {file = "flake8-4.0.1.tar.gz", hash = "sha256:806e034dda44114815e23c16ef92f95c91e4c71100ff52813adf7132a6ad870d"},
 ]
 fonttools = [
-    {file = "fonttools-4.35.0-py3-none-any.whl", hash = "sha256:0292e391c1b46f2308bda20ea2a2dd5253725e7e2d3a1928b631338eb318eb22"},
-    {file = "fonttools-4.35.0.zip", hash = "sha256:1cfb335c0abdeb6231191dc4f9d7ce1173e2ac94b335c617e045b96f9c974aea"},
+    {file = "fonttools-4.36.0-py3-none-any.whl", hash = "sha256:cb91ef8d5a435d90aeb3ab814b2548c6b515df5bc13b4c5adaa23778f2f79823"},
+    {file = "fonttools-4.36.0.zip", hash = "sha256:e637d2fe06bddabbfc488e02ef32d04d561e3c71e9ba11abc7782ea753ceb218"},
 ]
 frozenlist = [
     {file = "frozenlist-1.3.1-cp310-cp310-macosx_10_9_universal2.whl", hash = "sha256:5f271c93f001748fc26ddea409241312a75e13466b06c94798d1a341cf0e6989"},
