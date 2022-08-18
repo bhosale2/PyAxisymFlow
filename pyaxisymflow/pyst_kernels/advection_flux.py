@@ -12,7 +12,9 @@ def gen_advection_flux_conservative_eno3_pyst_kernel(
     # TODO expand docs
     """conservative ENO3 advection flux kernel generator."""
     pyst_dtype = "float32" if real_t == np.float32 else "float64"
-    kernel_config = ps.CreateKernelConfig(data_type=pyst_dtype, cpu_openmp=num_threads)
+    kernel_config = ps.CreateKernelConfig(
+        data_type=pyst_dtype, default_number_float=pyst_dtype, cpu_openmp=num_threads
+    )
     # we can add dtype checks later
     grid_info = (
         f"{fixed_grid_size[0]}, {fixed_grid_size[1]}" if fixed_grid_size else "2D"
@@ -167,7 +169,9 @@ def gen_advection_flux_non_conservative_eno3_pyst_kernel(
     # TODO expand docs
     """non-conservative ENO3 advection flux kernel generator."""
     pyst_dtype = "float32" if real_t == np.float32 else "float64"
-    kernel_config = ps.CreateKernelConfig(data_type=pyst_dtype, cpu_openmp=num_threads)
+    kernel_config = ps.CreateKernelConfig(
+        data_type=pyst_dtype, default_number_float=pyst_dtype, cpu_openmp=num_threads
+    )
     # we can add dtype checks later
     grid_info = (
         f"{fixed_grid_size[0]}, {fixed_grid_size[1]}" if fixed_grid_size else "2D"
