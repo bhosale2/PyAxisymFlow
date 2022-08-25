@@ -42,22 +42,30 @@ a_by_r_core = 0.34146341463414637
 a = a_by_r_core * r_core
 AR = 0.4285714285714286
 b = a * AR
-freq = 16
-freqTimer_limit = 1 / freq
-no_cycles = 20
-
+freq_all = np.array([16, 32])
+relative_amplitudes_all = np.array([1.0, 0.3])
+freq = freq_all[np.argmax(relative_amplitudes_all)]
 omega = 2 * np.pi * freq
+omega_all = 2 * np.pi * freq_all
 d_AC_by_r_core = 0.11235582096628798
 e = 0.0675
-U_0 = e * a * omega
 nu = omega * (d_AC_by_r_core * r_core) ** 2
+no_cycles = 30
 tEnd = no_cycles / freq
+
+# parameters for dumping data
+freqTimer_limit = 1 / freq
+data_per_cycle = 40
+dataTimer_limit = 1 / freq / data_per_cycle
+data_cycle_start = 20
+data_cycle_end = 30
+dataTimer_start = data_cycle_start / freq
+dataTimer_end = data_cycle_end / freq
 
 # Build discrete domain
 z = np.linspace(0 + dx / 2, 1 - dx / 2, grid_size_z)
 r = np.linspace(0 + dx / 2, domain_AR - dx / 2, grid_size_r)
 Z, R = np.meshgrid(z, r)
-
 
 # load initial conditions
 vorticity = 0 * Z
@@ -77,6 +85,7 @@ R_cm = r_core
 t = 0
 it = 0
 freqTimer = 0.0
+dataTimer = 0.0
 
 vel_phi = 0 * Z
 u_z_divg = 0 * Z
@@ -128,13 +137,21 @@ while t < tEnd:
         avg_u_z[...] = 0.0
         avg_u_r[...] = 0.0
 
+    if dataTimer >= dataTimer_limit:
+        dataTimer = 0.0
+        np.savez("u_z" + str("%0.4d" % (t * 1e4)) + ".npz", t=t, uz=u_z_pen)
+        np.savez("u_r" + str("%0.4d" % (t * 1e4)) + ".npz", t=t, ur=u_r_pen)
+        np.savez("charf" + str("%0.4d" % (t * 1e4)) + ".npz", t=t, charf=char_func)
+
     # move body and get char func
-    R_cm_t = R_cm + e * a * np.sin(omega * t)
+    R_cm_t = R_cm + e * a * np.sum(relative_amplitudes_all * np.sin(omega_all * t))
     phi[...] = a - np.sqrt((Z - Z_cm) ** 2 + (R - R_cm_t) ** 2 / AR**2)
     smooth_Heaviside(char_func, phi, moll_zone)
 
     # solve for potential function and get velocity
-    vel_divg[...] = U_0 * np.cos(omega * t) / R
+    vel_divg[...] = (
+        e * a * np.sum(relative_amplitudes_all * omega_all * np.cos(omega_all * t)) / R
+    )
     FD_potential_solver.solve(solution_field=vel_phi, rhs_field=(char_func * vel_divg))
     compute_velocity_from_phi_unb(u_z_divg, u_r_divg, vel_phi, dx)
     u_z[...] += u_z_divg
@@ -148,6 +165,10 @@ while t < tEnd:
     )
     if freqTimer + dt > freqTimer_limit:
         dt = freqTimer_limit - freqTimer
+    if dataTimer + dt > dataTimer_limit:
+        dt = dataTimer_limit - dataTimer
+    if t + dt > tEnd:
+        dt = tEnd - t
 
     # integrate averaged fields
     avg_psi[...] += psi * dt
@@ -160,7 +181,7 @@ while t < tEnd:
         dt,
         char_func,
         0.0,
-        U_0 * np.cos(omega * t),
+        e * a * np.sum(relative_amplitudes_all * omega_all * np.cos(omega_all * t)),
         u_z,
         u_r,
         u_z_pen,
@@ -182,6 +203,8 @@ while t < tEnd:
     t += dt
     it += 1
     freqTimer = freqTimer + dt
+    if t > dataTimer_start and t < dataTimer_end:
+        dataTimer = dataTimer + dt
     if it % 100 == 0:
         print(t, np.amax(vorticity))
 
