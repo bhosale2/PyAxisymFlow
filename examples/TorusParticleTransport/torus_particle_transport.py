@@ -195,14 +195,6 @@ while t < tEnd:
             part_R_cm=part_R_cm,
             part_loc=np.array(part_loc),
         )
-        np.savez(
-            f"restart{it:06d}.npz",
-            t=t,
-            vorticity=vorticity,
-            part_Z_cm=part_Z_cm,
-            part_R_cm=part_R_cm,
-            part_loc=np.array(part_loc),
-        )
         # save particle trajectory
         np.savetxt("part_loc.csv", np.array(part_loc), delimiter=",")
 
