@@ -86,10 +86,8 @@ vel_divg = 0 * Z
 #  create char function
 phi0 = -np.sqrt((Z - Z_cm) ** 2 + (R - R_cm) ** 2 / AR**2) + a
 char_func = 0 * Z
-char_func0 = 0 * Z
-smooth_Heaviside(char_func0, phi0, moll_zone)
 smooth_Heaviside(char_func, phi0, moll_zone)
-d = np.ma.array(char_func, mask=char_func < 0.5)
+torus_mask = np.ma.array(char_func, mask=char_func < 0.5)
 
 FD_stokes_solver = FastDiagonalisationStokesSolver(grid_size_r, grid_size_z, dx)
 FD_potential_solver = FastDiagonalisationPotentialSolver(grid_size_r, grid_size_z, dx)
@@ -121,7 +119,7 @@ while t < tEnd:
             ],
             colors="grey",
         )
-        plt.contourf(Z, R, d, cmap="Greys", zorder=2)
+        plt.contourf(Z, R, torus_mask, cmap="Greys", zorder=2)
         plt.gca().set_aspect("equal")
         plt.savefig("snap_" + str("%0.4d" % (t * 100)) + ".png")
         plt.clf()
