@@ -42,11 +42,11 @@ a_by_r_core = 0.34146341463414637
 a = a_by_r_core * r_core
 AR = 0.4285714285714286
 b = a * AR
-freq_all = np.array([16, 32])
-relative_amplitudes_all = np.array([1.0, 0.3])
-freq = freq_all[np.argmax(relative_amplitudes_all)]
+freq_modes = np.array([16, 32])
+amplitude_modes = np.array([1.0, 0.3])
+freq = freq_modes[np.argmax(amplitude_modes)]
 omega = 2 * np.pi * freq
-omega_all = 2 * np.pi * freq_all
+omega_modes = 2 * np.pi * freq_modes
 d_AC_by_r_core = 0.11235582096628798
 e = 0.0675
 nu = omega * (d_AC_by_r_core * r_core) ** 2
@@ -144,13 +144,13 @@ while t < tEnd:
         np.savez("charf" + str("%0.4d" % (t * 1e4)) + ".npz", t=t, charf=char_func)
 
     # move body and get char func
-    R_cm_t = R_cm + e * a * np.sum(relative_amplitudes_all * np.sin(omega_all * t))
+    R_cm_t = R_cm + e * a * np.sum(amplitude_modes * np.sin(omega_modes * t))
     phi[...] = a - np.sqrt((Z - Z_cm) ** 2 + (R - R_cm_t) ** 2 / AR**2)
     smooth_Heaviside(char_func, phi, moll_zone)
 
     # solve for potential function and get velocity
     vel_divg[...] = (
-        e * a * np.sum(relative_amplitudes_all * omega_all * np.cos(omega_all * t)) / R
+        e * a * np.sum(amplitude_modes * omega_modes * np.cos(omega_modes * t)) / R
     )
     FD_potential_solver.solve(solution_field=vel_phi, rhs_field=(char_func * vel_divg))
     compute_velocity_from_phi_unb(u_z_divg, u_r_divg, vel_phi, dx)
@@ -181,7 +181,7 @@ while t < tEnd:
         dt,
         char_func,
         0.0,
-        e * a * np.sum(relative_amplitudes_all * omega_all * np.cos(omega_all * t)),
+        e * a * np.sum(amplitude_modes * omega_modes * np.cos(omega_modes * t)),
         u_z,
         u_r,
         u_z_pen,
