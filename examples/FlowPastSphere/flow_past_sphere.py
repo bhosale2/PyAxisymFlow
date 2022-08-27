@@ -18,6 +18,7 @@ from pyaxisymflow.kernels.FastDiagonalisationStokesSolver import (
     FastDiagonalisationStokesSolver,
 )
 from pyaxisymflow.kernels.advect_vorticity_via_eno3 import gen_advect_vorticity_via_eno3
+from pyaxisymflow.kernels.implicit_diffusion_solver import ImplicitEulerDiffusionStepper
 
 # global settings
 grid_size_z = 256
@@ -27,6 +28,7 @@ grid_size_r = int(domain_AR * grid_size_z)
 CFL = 0.1
 eps = np.finfo(float).eps
 num_threads = 4
+implicit_diffusion = True
 
 plotset()
 plt.figure(figsize=(5 / domain_AR, 5))
@@ -36,7 +38,7 @@ brink_lam = 1e12
 moll_zone = dx * 2**0.5
 r_cyl = 0.075
 U_0 = 1.0
-Re = 100.0
+Re = 20.0
 nu = U_0 * 2 * r_cyl / Re
 nondim_T = 300
 tEnd = nondim_T * r_cyl / U_0
@@ -72,6 +74,15 @@ FD_stokes_solver = FastDiagonalisationStokesSolver(grid_size_r, grid_size_z, dx)
 advect_vorticity_via_eno3 = gen_advect_vorticity_via_eno3(
     dx, grid_size_r, grid_size_z, num_threads=num_threads
 )
+diffusion_dt_limit = dx**2 / 4 / nu
+if implicit_diffusion:
+    implicit_diffusion_stepper = ImplicitEulerDiffusionStepper(
+        time_step=diffusion_dt_limit,
+        kinematic_viscosity=nu,
+        grid_size_r=grid_size_r,
+        grid_size_z=grid_size_z,
+        dx=dx,
+    )
 
 # solver loop
 while t < tEnd:
@@ -130,10 +141,13 @@ while t < tEnd:
         plt.close("all")
 
     # get dt
-    dt = min(
-        0.9 * dx**2 / 4 / nu,
-        CFL / (np.amax(np.fabs(u_z) + np.fabs(u_r)) + eps),
-    )
+    if implicit_diffusion:
+        dt = diffusion_dt_limit
+    else:
+        dt = min(
+            0.9 * dx**2 / 4 / nu,
+            CFL / (np.amax(np.fabs(u_z) + np.fabs(u_r)) + eps),
+        )
 
     # penalise velocity (particle)
     u_z_upen[...] = u_z.copy()
@@ -156,8 +170,10 @@ while t < tEnd:
 
     advect_vorticity_via_eno3(vorticity, u_z, u_r, dt)
 
-    # diffuse vorticity
-    diffusion_RK2_unb(vorticity, temp_vorticity, R, nu, dt, dx)
+    if implicit_diffusion:
+        implicit_diffusion_stepper.step(vorticity_field=vorticity, dt=dt)
+    else:
+        diffusion_RK2_unb(vorticity, temp_vorticity, R, nu, dt, dx)
 
     #  update time
     t += dt
