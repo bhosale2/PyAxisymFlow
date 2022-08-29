@@ -30,9 +30,9 @@ def simulate_flow_past_sphere(
     sample_size=30,
     drag_diff=1e-5,
     implicit_diffusion=False,
-    CONVERGE_DRAG=False,
-    PLOT_FIGURE=False,
-    SAVE_VTK=False,
+    converge_drag=False,
+    plot_figure=False,
+    save_vtk=False,
 ):
     # global settings
     dx = 1.0 / grid_size_z
@@ -73,7 +73,7 @@ def simulate_flow_past_sphere(
     R_cm = 0.0
     t = 0.0
 
-    last_drags = []
+    drag_history = []
     previous_mean_drag = 0
 
     #  create char function
@@ -97,7 +97,7 @@ def simulate_flow_past_sphere(
         )
 
     # Initialize vtk
-    if SAVE_VTK:
+    if save_vtk:
         if not os.path.exists("vtk_data"):
             os.system("mkdir vtk_data")
         vtk_image_data, temp_vtk_array, writer = vtk_init(grid_size_z, grid_size_r)
@@ -123,10 +123,10 @@ def simulate_flow_past_sphere(
         if freqTimer >= freqTimer_limit or t == 0:
             freqTimer = 0.0
 
-            if PLOT_FIGURE:
+            if plot_figure:
                 plot_contours(t, Z, R, vorticity, u_z, char_func, Re)
 
-            if SAVE_VTK:
+            if save_vtk:
                 vtk_write(
                     "vtk_data/axisym_avg_"
                     + str("%0.4d" % (t * 100))
@@ -190,10 +190,10 @@ def simulate_flow_past_sphere(
             print(f"time: {t}, max vort: {np.amax(vorticity)}, drag coeff: {Cd}")
 
         # Save drag
-        last_drags.append(Cd)
-        if CONVERGE_DRAG and (it % sample_size == 0):
-            curr_mean_drag = sum(last_drags) / sample_size
-            last_drags = []
+        drag_history.append(Cd)
+        if converge_drag and (it % sample_size == 0):
+            curr_mean_drag = sum(drag_history) / sample_size
+            drag_history = []
 
             if previous_mean_drag == 0:  # Ignore first set
                 previous_mean_drag = curr_mean_drag
@@ -209,7 +209,7 @@ def simulate_flow_past_sphere(
 
 
 if __name__ == "__main__":
-    simulate_flow_past_sphere(100, grid_size_z=256, PLOT_FIGURE=True, SAVE_VTK=True)
+    simulate_flow_past_sphere(100, grid_size_z=256, plot_figure=True, save_vtk=True)
     os.system("rm -f 2D_advect.mp4")
     os.system(
         "ffmpeg -r 20 -s 3840x2160 -f image2 -pattern_type glob -i 'snap*.png' "

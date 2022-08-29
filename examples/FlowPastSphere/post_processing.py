@@ -57,7 +57,7 @@ def plot_Cd_vs_Re(sim_Re, sim_results):
 
 
 def compare_with_exp_data(ax):
-    filename = "roo.txt"
+    filename = "experimental_data_Roos_Willmarth.txt"
     data = {"Re": [], "Cd": []}
 
     with open(filename, "r") as f:
@@ -73,7 +73,7 @@ def compare_with_exp_data(ax):
             curr = f.readline()
         f.close()
 
-    ax.plot(data["Re"], data["Cd"], "*k", label="Roos & William")
+    ax.plot(data["Re"], data["Cd"], "*k", label="Roos & Willmarth")
     ax.legend()
 
 

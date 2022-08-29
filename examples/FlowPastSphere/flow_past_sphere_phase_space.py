@@ -19,7 +19,7 @@ if __name__ == "__main__":
         sim_results = []
         for Re in sim_Re:
             print(f"Simulating Re = {Re}")
-            sim_results.append(simulate_flow_past_sphere(Re, CONVERGE_DRAG=True))
+            sim_results.append(simulate_flow_past_sphere(Re, converge_drag=True))
 
         if os.path.exists(filename):
             os.remove(filename)
