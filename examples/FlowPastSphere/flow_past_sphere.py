@@ -29,7 +29,7 @@ def simulate_flow_past_sphere(
     domain_AR=0.5,
     sample_size=30,
     drag_diff=1e-5,
-    implicit_diffusion=True,
+    implicit_diffusion=False,
     CONVERGE_DRAG=False,
     PLOT_FIGURE=False,
     SAVE_VTK=False,
