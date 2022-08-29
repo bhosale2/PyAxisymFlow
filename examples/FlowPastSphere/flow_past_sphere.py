@@ -143,6 +143,7 @@ def simulate_flow_past_sphere(
 
         # get dt
         if implicit_diffusion:
+            # technically we can set any higher dt here lower than the CFL limit
             dt = diffusion_dt_limit
         else:
             dt = min(
