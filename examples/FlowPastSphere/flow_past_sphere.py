@@ -44,12 +44,12 @@ def simulate_flow_past_sphere(
     # Parameters
     brink_lam = 1e12
     moll_zone = dx * 2**0.5
-    r_cyl = 0.1
+    r_sph = 0.1
     U_0 = 1.0
-    nu = U_0 * 2 * r_cyl / Re
+    nu = U_0 * 2 * r_sph / Re
     nondim_T = 300
-    tEnd = nondim_T * r_cyl / U_0
-    T_ramp = 20 * r_cyl / U_0
+    tEnd = nondim_T * r_sph / U_0
+    T_ramp = 20 * r_sph / U_0
     freqTimer_limit = tEnd / 200
     freqTimer = 0.0
 
@@ -77,7 +77,7 @@ def simulate_flow_past_sphere(
     previous_mean_drag = 0
 
     #  create char function
-    phi0 = -np.sqrt((Z - Z_cm) ** 2 + (R - R_cm) ** 2) + r_cyl
+    phi0 = -np.sqrt((Z - Z_cm) ** 2 + (R - R_cm) ** 2) + r_sph
     char_func = 0 * Z
     smooth_Heaviside(char_func, phi0, moll_zone)
 
@@ -169,7 +169,7 @@ def simulate_flow_past_sphere(
             * dx
             * brink_lam
             * np.sum(R * char_func * u_z)
-            / (np.pi * r_cyl**2)
+            / (np.pi * r_sph**2)
         )  # (Cd = F/(0.5*p*U^2*A))
 
         advect_vorticity_via_eno3(vorticity, u_z, u_r, dt)
