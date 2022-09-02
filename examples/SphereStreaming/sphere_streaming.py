@@ -5,7 +5,9 @@ from pyaxisymflow.utils.plotset import plotset
 from pyaxisymflow.utils.custom_cmap import lab_cmp
 from pyaxisymflow.utils.dump_vtk import vtk_init, vtk_write
 from pyaxisymflow.kernels.brinkmann_penalize import brinkmann_penalize
-from pyaxisymflow.kernels.compute_velocity_from_psi import compute_velocity_from_psi_unb
+from pyaxisymflow.kernels.compute_velocity_from_psi import (
+    compute_velocity_from_psi_unb,
+)
 from pyaxisymflow.kernels.compute_vorticity_from_velocity import (
     compute_vorticity_from_velocity_unb,
 )
@@ -18,7 +20,10 @@ from pyaxisymflow.kernels.diffusion_RK2 import diffusion_RK2_unb
 from pyaxisymflow.kernels.FastDiagonalisationStokesSolver import (
     FastDiagonalisationStokesSolver,
 )
-from pyaxisymflow.kernels.advect_vorticity_via_eno3 import gen_advect_vorticity_via_eno3
+from pyaxisymflow.kernels.advect_vorticity_via_eno3 import (
+    gen_advect_vorticity_via_eno3,
+)
+from pyaxisymflow.kernels.implicit_diffusion_solver import ImplicitEulerDiffusionStepper
 
 
 # global settings
@@ -29,16 +34,15 @@ grid_size_r = int(domain_AR * grid_size_z)
 CFL = 0.1
 eps = np.finfo(float).eps
 num_threads = 4
+implicit_diffusion = False
 
 plotset()
 plt.figure(figsize=(5 / domain_AR, 5))
 # Parameters
-fotoTimer_limit = 0.1
 brink_lam = 1e4
 moll_zone = dx * 2**0.5
 r_cyl = 0.075
 freq = 16
-freqTimer_limit = 1 / freq
 omega = 2 * np.pi * freq
 M_sq = 100.2
 nond_AC = 1.0 / np.sqrt(M_sq)
@@ -82,6 +86,22 @@ advect_vorticity_via_eno3 = gen_advect_vorticity_via_eno3(
     dx, grid_size_r, grid_size_z, num_threads=num_threads
 )
 
+
+diffusion_dt_limit = dx**2 / 4 / nu
+freqTimer_limit = 1 / freq
+snaps_per_cycle = 40
+fotoTimer_limit = 1 / freq / snaps_per_cycle
+dt_limit = min(diffusion_dt_limit, freqTimer_limit, fotoTimer_limit)
+
+if implicit_diffusion:
+    implicit_diffusion_stepper = ImplicitEulerDiffusionStepper(
+        time_step=diffusion_dt_limit,
+        kinematic_viscosity=nu,
+        grid_size_r=grid_size_r,
+        grid_size_z=grid_size_z,
+        dx=dx,
+    )
+
 # solver loop
 while t < tEnd:
 
@@ -95,7 +115,6 @@ while t < tEnd:
 
     if freqTimer >= freqTimer_limit:
         freqTimer = 0.0
-        fotoTimer = 0.0
         fig = plt.figure()
         ax = fig.add_subplot(111)
         plt.contourf(Z, R, avg_psi, levels=25, extend="both", cmap=lab_cmp)
@@ -138,18 +157,27 @@ while t < tEnd:
         )
         avg_psi[...] = 0 * Z
 
+    if fotoTimer >= fotoTimer_limit:
+        fotoTimer = 0.0
+        # save whatever fields you want a snapshot of
+        # np.savez("u_z" + str("%0.4d" % (t * 1e4)) + ".npz", t=t, uz=u_z_upen)
+        # np.savez("u_r" + str("%0.4d" % (t * 1e4)) + ".npz", t=t, ur=u_r_upen)
+        # np.savez("charf" + str("%0.4d" % (t * 1e4)) + ".npz", t=t, charf=char_func)
+
     # get dt
-    dt = min(
-        0.9 * dx**2 / 4 / nu,
-        CFL / (np.amax(np.fabs(u_z) + np.fabs(u_r)) + eps),
-        0.01 * freqTimer_limit,
-    )
-    if freqTimer + dt > freqTimer_limit:
-        dt = freqTimer_limit - freqTimer
-    if fotoTimer + dt > fotoTimer_limit:
-        dt = fotoTimer_limit - fotoTimer
-    if t + dt > tEnd:
-        dt = tEnd - t
+    if implicit_diffusion:
+        dt = dt_limit
+    else:
+        dt = min(
+            0.9 * dx**2 / 4 / nu,
+            CFL / (np.amax(np.fabs(u_z) + np.fabs(u_r)) + eps),
+        )
+        if freqTimer + dt > freqTimer_limit:
+            dt = freqTimer_limit - freqTimer
+        if fotoTimer + dt > fotoTimer_limit:
+            dt = fotoTimer_limit - fotoTimer
+        if t + dt > tEnd:
+            dt = tEnd - t
 
     # integrate averaged fields
     avg_psi[...] += psi * dt
@@ -182,7 +210,11 @@ while t < tEnd:
     advect_vorticity_via_eno3(vorticity, u_z, u_r, dt)
 
     # diffuse vorticity
-    diffusion_RK2_unb(vorticity, temp_vorticity, R, nu, dt, dx)
+    # diffusion_RK2_unb(vorticity, temp_vorticity, R, nu, dt, dx)
+    if implicit_diffusion:
+        implicit_diffusion_stepper.step(vorticity_field=vorticity, dt=dt)
+    else:
+        diffusion_RK2_unb(vorticity, temp_vorticity, R, nu, dt, dx)
 
     #  update time
     t += dt
@@ -190,7 +222,7 @@ while t < tEnd:
     it += 1
     freqTimer = freqTimer + dt
     if it % 50 == 0:
-        print(f"time: {t}, max vort: {np.amax(vorticity)}")
+        print(f"time: {t}, dt: {dt}, max vort: {np.amax(vorticity)}")
 
 
 os.system("rm -f 2D_advect.mp4")
