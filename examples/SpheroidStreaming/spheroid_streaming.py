@@ -43,16 +43,17 @@ brink_lam = 1e4
 moll_zone = dx * 2**0.5
 
 # Spheroid geometry
-spheroid_AR = 1.25
-rad_a = 0.075
+spheroid_AR = 1.0
+rad_a = 0.075  # radius along axis of symmetry and oscillation
 rad_b = rad_a / spheroid_AR
 rad_eq = (rad_b**2 * rad_a) ** (1 / 3)
 length_scale = spheroid_AR * rad_eq
+print(f"Problem length scale: {length_scale}")
 
 # streaming parameters
 freq = 16
 omega = 2 * np.pi * freq
-M_sq = 100.2
+M_sq = 10.1950
 nond_AC = 1.0 / np.sqrt(M_sq)
 e = 0.1
 U_0 = e * length_scale * omega
@@ -153,6 +154,7 @@ while t < tEnd:
             pad_inches=0,
             dpi=300,
         )
+        plt.clf()
         vtk_write(
             "axisym_avg_" + str("%0.4d" % (t * 100)) + ".vti",
             vtk_image_data,
