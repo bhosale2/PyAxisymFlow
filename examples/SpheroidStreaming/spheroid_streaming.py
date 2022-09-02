@@ -43,7 +43,7 @@ brink_lam = 1e4
 moll_zone = dx * 2**0.5
 
 # Spheroid geometry
-spheroid_AR = 1.0
+spheroid_AR = 0.75
 rad_a = 0.075  # radius along axis of symmetry and oscillation
 rad_b = rad_a / spheroid_AR
 rad_eq = (rad_b**2 * rad_a) ** (1 / 3)
@@ -53,7 +53,7 @@ print(f"Problem length scale: {length_scale}")
 # streaming parameters
 freq = 16
 omega = 2 * np.pi * freq
-M_sq = 10.1950
+M_sq = 28.1950
 nond_AC = 1.0 / np.sqrt(M_sq)
 e = 0.1
 U_0 = e * length_scale * omega
@@ -181,6 +181,7 @@ while t < tEnd:
         dt = min(
             0.9 * dx**2 / 4 / nu,
             CFL / (np.amax(np.fabs(u_z) + np.fabs(u_r)) + eps),
+            0.01 * freqTimer_limit,
         )
         if freqTimer + dt > freqTimer_limit:
             dt = freqTimer_limit - freqTimer
@@ -194,7 +195,7 @@ while t < tEnd:
 
     # move body
     Z_cm_t = Z_cm + e * length_scale * np.sin(omega * t)
-    phi = rad_b - np.sqrt((Z - Z_cm) ** 2 / spheroid_AR**2 + (R - R_cm) ** 2)
+    phi = rad_b - np.sqrt((Z - Z_cm_t) ** 2 / spheroid_AR**2 + (R - R_cm) ** 2)
     char_func = 0 * Z
     smooth_Heaviside(char_func, phi, moll_zone)
     # penalise velocity
