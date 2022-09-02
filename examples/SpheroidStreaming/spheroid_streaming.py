@@ -41,15 +41,23 @@ plt.figure(figsize=(5 / domain_AR, 5))
 # Parameters
 brink_lam = 1e4
 moll_zone = dx * 2**0.5
-r_cyl = 0.075
+
+# Spheroid geometry
+spheroid_AR = 1.25
+rad_a = 0.075
+rad_b = rad_a / spheroid_AR
+rad_eq = (rad_b**2 * rad_a) ** (1 / 3)
+length_scale = spheroid_AR * rad_eq
+
+# streaming parameters
 freq = 16
 omega = 2 * np.pi * freq
 M_sq = 100.2
 nond_AC = 1.0 / np.sqrt(M_sq)
 e = 0.1
-U_0 = e * r_cyl * omega
+U_0 = e * length_scale * omega
 Rs = (e / nond_AC) ** 2
-nu = e * U_0 * r_cyl / Rs
+nu = e * U_0 * length_scale / Rs
 no_cycles = 25
 tEnd = no_cycles / freq
 
@@ -76,9 +84,9 @@ u_z_upen = 0 * Z
 u_r_upen = 0 * Z
 
 #  create char function
-phi0 = -np.sqrt((Z - Z_cm) ** 2 + (R - R_cm) ** 2) + r_cyl
+phi = -np.sqrt((Z - Z_cm) ** 2 / spheroid_AR**2 + (R - R_cm) ** 2) + rad_b
 char_func = 0 * Z
-smooth_Heaviside(char_func, phi0, moll_zone)
+smooth_Heaviside(char_func, phi, moll_zone)
 
 FD_stokes_solver = FastDiagonalisationStokesSolver(grid_size_r, grid_size_z, dx)
 vtk_image_data, temp_vtk_array, writer = vtk_init(grid_size_z, grid_size_r)
@@ -86,11 +94,11 @@ advect_vorticity_via_eno3 = gen_advect_vorticity_via_eno3(
     dx, grid_size_r, grid_size_z, num_threads=num_threads
 )
 
-
-diffusion_dt_limit = dx**2 / 4 / nu
-freqTimer_limit = 1 / freq
+# timestep related parameters
 snaps_per_cycle = 40
 fotoTimer_limit = 1 / freq / snaps_per_cycle
+freqTimer_limit = 1 / freq
+diffusion_dt_limit = dx**2 / 4 / nu
 dt_limit = min(diffusion_dt_limit, freqTimer_limit, fotoTimer_limit)
 
 if implicit_diffusion:
@@ -183,8 +191,8 @@ while t < tEnd:
     avg_psi[...] += psi * dt
 
     # move body
-    Z_cm_t = Z_cm + e * r_cyl * np.sin(omega * t)
-    phi = r_cyl - np.sqrt((Z - Z_cm_t) ** 2 + (R - R_cm) ** 2)
+    Z_cm_t = Z_cm + e * length_scale * np.sin(omega * t)
+    phi = rad_b - np.sqrt((Z - Z_cm) ** 2 / spheroid_AR**2 + (R - R_cm) ** 2)
     char_func = 0 * Z
     smooth_Heaviside(char_func, phi, moll_zone)
     # penalise velocity
