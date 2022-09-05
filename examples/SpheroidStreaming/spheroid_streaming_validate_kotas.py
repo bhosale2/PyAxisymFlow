@@ -1,7 +1,7 @@
 import os
 from spheroid_streaming import simulate_oscillating_spheroid
 
-# (spheroid_AR, womersley_sq) pairs to validate from Kotas 2007
+# (spheroid_AR, womersley_square) pairs to validate from Kotas 2007
 cases = [
     (0.75, 28.195),
     (0.75, 42.4298),
@@ -25,16 +25,16 @@ cases = [
 
 if __name__ == "__main__":
 
-    for (spheroid_AR, womersley_sq) in cases:
-        dirname = f"spheroidAR{spheroid_AR}_womersley_sq{womersley_sq}"
+    for (spheroid_AR, womersley_square) in cases:
+        dirname = f"spheroidAR{spheroid_AR}_womersley_square{womersley_square}"
         if os.path.exists(dirname):
             os.system(f"rm -rf {dirname}")
         os.makedirs(dirname, exist_ok=True)
 
         os.chdir(dirname)
-        print(f"Simulating AR={spheroid_AR}, womersley_sq={womersley_sq}")
+        print(f"Simulating AR={spheroid_AR}, womersley_square={womersley_square}")
         simulate_oscillating_spheroid(
-            womersley_sq=womersley_sq,
+            womersley_square=womersley_square,
             radius=0.075,
             spheroid_AR=spheroid_AR,
             grid_size_z=512,
