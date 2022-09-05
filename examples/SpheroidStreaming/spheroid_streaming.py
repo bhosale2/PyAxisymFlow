@@ -225,7 +225,6 @@ def simulate_oscillating_spheroid(
         advect_vorticity_via_eno3(vorticity, u_z, u_r, dt)
 
         # diffuse vorticity
-        # diffusion_RK2_unb(vorticity, temp_vorticity, R, nu, dt, dx)
         if implicit_diffusion:
             implicit_diffusion_stepper.step(vorticity_field=vorticity, dt=dt)
         else:
