@@ -27,7 +27,7 @@ from pyaxisymflow.kernels.implicit_diffusion_solver import ImplicitEulerDiffusio
 
 
 def simulate_oscillating_spheroid(
-    M_sq,
+    womersley,
     radius,
     spheroid_AR,
     freq=16,
@@ -59,7 +59,7 @@ def simulate_oscillating_spheroid(
 
     # streaming parameters
     omega = 2 * np.pi * freq
-    nond_AC = 1.0 / np.sqrt(M_sq)
+    nond_AC = 1.0 / np.sqrt(womersley)
     e = 0.1
     U_0 = e * length_scale * omega
     Rs = (e / nond_AC) ** 2
@@ -83,7 +83,6 @@ def simulate_oscillating_spheroid(
     Z_cm = 0.5
     R_cm = 0.0
     t = 0
-    fotoTimer = 0.0
     it = 0
     freqTimer = 0.0
     u_z_upen = 0 * Z
@@ -181,13 +180,6 @@ def simulate_oscillating_spheroid(
                 )
             avg_psi[...] = 0 * Z
 
-        if fotoTimer >= fotoTimer_limit:
-            fotoTimer = 0.0
-            # save whatever fields you want a snapshot of
-            # np.savez("u_z" + str("%0.4d" % (t * 1e4)) + ".npz", t=t, uz=u_z_upen)
-            # np.savez("u_r" + str("%0.4d" % (t * 1e4)) + ".npz", t=t, ur=u_r_upen)
-            # np.savez("charf" + str("%0.4d" % (t * 1e4)) + ".npz", t=t, charf=char_func)
-
         # get dt
         if implicit_diffusion:
             dt = dt_limit
@@ -199,8 +191,6 @@ def simulate_oscillating_spheroid(
             )
             if freqTimer + dt > freqTimer_limit:
                 dt = freqTimer_limit - freqTimer
-            if fotoTimer + dt > fotoTimer_limit:
-                dt = fotoTimer_limit - fotoTimer
             if t + dt > tEnd:
                 dt = tEnd - t
 
@@ -243,7 +233,6 @@ def simulate_oscillating_spheroid(
 
         #  update time
         t += dt
-        fotoTimer += dt
         it += 1
         freqTimer = freqTimer + dt
         if it % 50 == 0:
@@ -259,7 +248,7 @@ def simulate_oscillating_spheroid(
 
 if __name__ == "__main__":
     simulate_oscillating_spheroid(
-        M_sq=100.2,
+        womersley=100.2,
         radius=0.075,
         spheroid_AR=1,
         grid_size_z=256,
