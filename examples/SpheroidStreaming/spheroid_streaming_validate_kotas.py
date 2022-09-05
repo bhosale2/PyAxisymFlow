@@ -5,7 +5,7 @@ from spheroid_streaming import simulate_oscillating_spheroid
 if __name__ == "__main__":
 
     cases = np.loadtxt(
-        "experimental_data_parameter_range.csv", delimiter=",", skiprows=1
+        "experimental_data_parameter_range.txt", delimiter=",", skiprows=1
     )
     for (spheroid_AR, womersley_square) in cases:
         dirname = f"spheroidAR{spheroid_AR}_womersley_square{womersley_square}"
