@@ -27,7 +27,7 @@ from pyaxisymflow.kernels.implicit_diffusion_solver import ImplicitEulerDiffusio
 
 
 def simulate_oscillating_spheroid(
-    womersley,
+    womersley_sq,
     radius,
     spheroid_AR,
     freq=16,
@@ -59,7 +59,7 @@ def simulate_oscillating_spheroid(
 
     # streaming parameters
     omega = 2 * np.pi * freq
-    nond_AC = 1.0 / np.sqrt(womersley)
+    nond_AC = 1.0 / np.sqrt(womersley_sq)
     e = 0.1
     U_0 = e * length_scale * omega
     Rs = (e / nond_AC) ** 2
@@ -247,7 +247,7 @@ def simulate_oscillating_spheroid(
 
 if __name__ == "__main__":
     simulate_oscillating_spheroid(
-        womersley=100.2,
+        womersley_sq=100.2,
         radius=0.075,
         spheroid_AR=1,
         grid_size_z=256,
