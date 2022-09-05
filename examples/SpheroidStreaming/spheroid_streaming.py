@@ -51,9 +51,9 @@ def simulate_oscillating_spheroid(
     moll_zone = dx * 2**0.5
 
     # Spheroid geometry
-    rad_a = radius  # radius along axis of symmetry and oscillation
-    rad_b = rad_a / spheroid_AR
-    rad_eq = (rad_b**2 * rad_a) ** (1 / 3)
+    radius_along_oscillation = radius  # radius along axis of symmetry and oscillation
+    radius_normal_to_oscillation = radius_along_oscillation / spheroid_AR
+    rad_eq = (radius_normal_to_oscillation**2 * radius_along_oscillation) ** (1 / 3)
     length_scale = spheroid_AR * rad_eq
     print(f"Problem length scale: {length_scale}")
 
@@ -89,7 +89,10 @@ def simulate_oscillating_spheroid(
     u_r_upen = 0 * Z
 
     #  create char function
-    phi = -np.sqrt((Z - Z_cm) ** 2 / spheroid_AR**2 + (R - R_cm) ** 2) + rad_b
+    phi = (
+        -np.sqrt((Z - Z_cm) ** 2 / spheroid_AR**2 + (R - R_cm) ** 2)
+        + radius_normal_to_oscillation
+    )
     char_func = 0 * Z
     smooth_Heaviside(char_func, phi, moll_zone)
 
@@ -199,7 +202,9 @@ def simulate_oscillating_spheroid(
 
         # move body
         Z_cm_t = Z_cm + e * length_scale * np.sin(omega * t)
-        phi = rad_b - np.sqrt((Z - Z_cm_t) ** 2 / spheroid_AR**2 + (R - R_cm) ** 2)
+        phi = radius_normal_to_oscillation - np.sqrt(
+            (Z - Z_cm_t) ** 2 / spheroid_AR**2 + (R - R_cm) ** 2
+        )
         char_func = 0 * Z
         smooth_Heaviside(char_func, phi, moll_zone)
         # penalise velocity
