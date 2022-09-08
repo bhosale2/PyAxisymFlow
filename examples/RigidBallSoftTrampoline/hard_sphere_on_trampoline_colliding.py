@@ -41,9 +41,10 @@ grid_size_z = 400
 domain_AR = 0.5
 dx = 1.0 / grid_size_z
 grid_size_r = int(domain_AR * grid_size_z)
-LCFL = 0.1
+CFL = 0.1
 eps = np.finfo(float).eps
 num_threads = 4
+implicit_diffusion = False
 
 
 plt.figure(figsize=(5 / domain_AR, 5))
@@ -134,6 +135,16 @@ FD_stokes_solver = FastDiagonalisationStokesSolver(grid_size_r, grid_size_z, dx)
 advect_vorticity_via_eno3 = gen_advect_vorticity_via_eno3(
     dx, grid_size_r, grid_size_z, num_threads=num_threads
 )
+
+diffusion_dt_limit = dx / np.sqrt(G)
+if implicit_diffusion:
+    implicit_diffusion_stepper = ImplicitEulerDiffusionStepper(
+        time_step=diffusion_dt_limit,
+        kinematic_viscosity=nu,
+        grid_size_r=grid_size_r,
+        grid_size_z=grid_size_z,
+        dx=dx,
+    )
 r1 = np.linspace(0 + dx / 2, domain_AR - dx / 2, 2 * grid_size_r)
 Z_double, R_double = np.meshgrid(z, r1)
 F_un = 0
@@ -238,12 +249,16 @@ while t < tEnd:
             grid_size_r,
         )
 
-    # get dt
-    dt = 0.5 * min(
-        LCFL * dx / np.sqrt(G / rho_f),
-        0.9 * dx**2 / 4 / nu,
-        LCFL / (np.amax(np.fabs(vorticity)) + eps),
-    )
+        # get dt
+        if implicit_diffusion:
+            # technically we can set any higher dt here lower than the CFL limit
+            dt = diffusion_dt_limit
+        else:
+            dt = min(
+                CFL * dx / np.sqrt(G / rho_f),
+                0.9 * dx**2 / 4 / nu,
+                CFL / (np.amax(np.fabs(u_z) + np.fabs(u_r)) + eps),
+            )
 
     # advect refmap
     advect_refmap_via_eno3(
