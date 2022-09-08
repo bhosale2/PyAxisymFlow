@@ -152,6 +152,5 @@ if __name__ == "__main__":
     cont = ax.contourf(X, Y, phi, levels=30, cmap=plt.get_cmap("Reds"))
     ax.contour(X, Y, activation_phi, levels=[0], colors="black", linewidths=3.0)
 
-
     ax.set_aspect("equal")
     plt.show()

@@ -34,7 +34,7 @@ from pyaxisymflow.kernels.compute_vorticity_from_velocity import (
     compute_vorticity_from_velocity_unb,
 )
 from pyaxisymflow.utils.dump_vtk import vtk_init, vtk_write
-from trampoline_level_set import trampoline_level_set 
+from trampoline_level_set import trampoline_level_set
 
 # global settings
 grid_size_z = 400
