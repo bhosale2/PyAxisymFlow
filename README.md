@@ -29,3 +29,14 @@ make poetry-download
 make install
 make pre-commit-install
 ```
+
+## Contribution
+
+If you would like to participate, please read our [contribution guideline](CONTRIBUTING.md)
+
+## Senior Developers ✨
+_Names arranged alphabetically_
+- Fan Kiat Chan
+- Gaurav Upadhyay
+- Songyuan Cui
+- [Yashraj Bhosale](https://github.com/bhosale2)
