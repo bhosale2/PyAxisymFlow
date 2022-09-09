@@ -58,6 +58,18 @@ check-codestyle: black-check flake8 autoflake8-check
 .PHONY: formatting
 formatting: format-codestyle
 
+.PHONY: test
+test:
+	poetry run pytest
+
+.PHONY: test_coverage
+test_coverage:
+	NUMBA_DISABLE_JIT=1 poetry run pytest --cov=pyaxisymflow
+
+.PHONY: test_coverage_xml
+test_coverage_xml:
+	NUMBA_DISABLE_JIT=1 poetry run pytest --cov=pyaxisymflow --cov-report=xml
+
 .PHONY: update-dev-deps
 update-dev-deps:
 	poetry add -D pytest@latest coverage@latest pytest-html@latest pytest-cov@latest black@latest

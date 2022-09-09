@@ -45,8 +45,12 @@ jobs:
           poetry install
       # Runs a single command using the runners shell
       - name: Welcome message
-        run: echo Hello, world! Welcome PyAxisymFlow Build, lets start testing!
+        run: echo Hello, world! Welcome to PyAxisymFlow Build, lets start testing!
       # Run style checks (black, flake8 and autoflake)
       - name: Run style checks
         run: |
           make check-codestyle
+      # Test PyAxisymFlow using pytest
+      - name: Run tests
+        run: |
+          make test
