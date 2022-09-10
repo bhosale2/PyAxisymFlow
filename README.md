@@ -36,7 +36,7 @@ If you would like to participate, please read our [contribution guideline](CONTR
 
 ## Senior Developers ✨
 _Names arranged alphabetically_
-- Fan Kiat Chan
+- [Fan Kiat Chan](https://github.com/fankiat)
 - Gaurav Upadhyay
 - Songyuan Cui
 - [Yashraj Bhosale](https://github.com/bhosale2)
