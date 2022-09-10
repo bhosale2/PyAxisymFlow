@@ -30,8 +30,9 @@ module load anaconda3
 source activate pyaxisymflow
 conda env list
 
-# set omp num threads the same as ---cpus-per-task
-export OMP_NUM_THREADS=4
+# set smp num threads the same as ---cpus-per-task
+SMP_NUM_THREADS=4
+export OMP_NUM_THREADS=$SMP_NUM_THREADS
 
 # execute the program
-~/.conda/envs/pyaxisymflow/bin/python -u ${PROGNAME}
+~/.conda/envs/pyaxisymflow/bin/python -u ${PROGNAME} --num_threads=$SMP_NUM_THREADS

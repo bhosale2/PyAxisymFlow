@@ -1,3 +1,4 @@
+import click
 import numpy as np
 import os
 
@@ -25,6 +26,7 @@ from pyaxisymflow.kernels.implicit_diffusion_solver import ImplicitEulerDiffusio
 
 def simulate_flow_past_sphere(
     Re,
+    num_threads=1,
     grid_size_z=512,
     domain_AR=0.5,
     sample_size=30,
@@ -39,7 +41,6 @@ def simulate_flow_past_sphere(
     grid_size_r = int(domain_AR * grid_size_z)
     CFL = 0.1
     eps = np.finfo(float).eps
-    num_threads = 4
 
     # Parameters
     brink_lam = 1e12
@@ -208,8 +209,17 @@ def simulate_flow_past_sphere(
     return previous_mean_drag
 
 
+@click.command()
+@click.option("--num_threads", default=1, help="Number of threads for parallelism.")
+def simulate_parallelised_flow_past_sphere(num_threads):
+    click.echo(f"Number of threads for parallelism: {num_threads}")
+    simulate_flow_past_sphere(
+        Re=100, num_threads=num_threads, grid_size_z=256, plot_figure=True
+    )
+
+
 if __name__ == "__main__":
-    simulate_flow_past_sphere(100, grid_size_z=256, plot_figure=True, save_vtk=True)
+    simulate_parallelised_flow_past_sphere()
     os.system("rm -f 2D_advect.mp4")
     os.system(
         "ffmpeg -r 20 -s 3840x2160 -f image2 -pattern_type glob -i 'snap*.png' "
