@@ -101,16 +101,19 @@ def simulate_oscillating_spheroid(
         dx, grid_size_r, grid_size_z, num_threads=num_threads
     )
 
-    # timestep related parameters
-    snaps_per_cycle = 40
-    fotoTimer_limit = 1 / freq / snaps_per_cycle
+    # timestep related parameters (aligned to end of cycle)
     freqTimer_limit = 1 / freq
-    diffusion_dt_limit = dx**2 / 4 / nu
-    dt_limit = min(diffusion_dt_limit, freqTimer_limit, fotoTimer_limit)
+    # trick to align diffusion dt limit to cover the cycle
+    # duration correctly
+    diffusion_dt_limit = 0.9 * dx**2 / 4 / nu
+    num_diffusion_substeps = freqTimer_limit / diffusion_dt_limit
+    diffusion_dt_limit = freqTimer_limit / num_diffusion_substeps
+
+    dt_limit = min(diffusion_dt_limit, freqTimer_limit)
 
     if implicit_diffusion:
         implicit_diffusion_stepper = ImplicitEulerDiffusionStepper(
-            time_step=diffusion_dt_limit,
+            time_step=dt_limit,
             kinematic_viscosity=nu,
             grid_size_r=grid_size_r,
             grid_size_z=grid_size_z,
@@ -133,7 +136,7 @@ def simulate_oscillating_spheroid(
         FD_stokes_solver.solve(solution_field=psi, rhs_field=vorticity)
         compute_velocity_from_psi_unb(u_z, u_r, psi, R, dx)
 
-        if freqTimer >= freqTimer_limit:
+        if np.isclose(freqTimer, freqTimer_limit):
             freqTimer = 0.0
 
             if plot_figure:
@@ -257,4 +260,5 @@ if __name__ == "__main__":
         spheroid_AR=1,
         grid_size_z=256,
         plot_figure=True,
+        implicit_diffusion=False,
     )
