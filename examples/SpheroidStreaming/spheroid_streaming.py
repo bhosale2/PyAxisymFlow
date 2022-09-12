@@ -106,7 +106,7 @@ def simulate_oscillating_spheroid(
     # trick to align diffusion dt limit to cover the cycle
     # duration correctly
     diffusion_dt_limit = 0.9 * dx**2 / 4 / nu
-    num_diffusion_substeps = freqTimer_limit / diffusion_dt_limit
+    num_diffusion_substeps = int(freqTimer_limit / diffusion_dt_limit)
     diffusion_dt_limit = freqTimer_limit / num_diffusion_substeps
 
     dt_limit = min(diffusion_dt_limit, freqTimer_limit)
