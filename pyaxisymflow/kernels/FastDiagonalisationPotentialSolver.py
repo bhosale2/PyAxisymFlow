@@ -140,7 +140,6 @@ class FastDiagonalisationPotentialSolver:
         )
 
         # transform to physical space ("backward transform")
-        la.multi_dot(
+        solution_field[...] = la.multi_dot(
             [self.eig_vecs_r, self.spectral_field_buffer, self.tranpose_of_eig_vecs_z],
-            out=solution_field,
         )
