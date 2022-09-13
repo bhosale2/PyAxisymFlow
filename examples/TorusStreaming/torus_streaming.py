@@ -22,6 +22,7 @@ from pyaxisymflow.kernels.FastDiagonalisationPotentialSolver import (
 )
 from pyaxisymflow.kernels.advect_vorticity_via_eno3 import gen_advect_vorticity_via_eno3
 from pyaxisymflow.kernels.compute_velocity_from_phi import compute_velocity_from_phi_unb
+from pyaxisymflow.kernels.implicit_diffusion_solver import ImplicitEulerDiffusionStepper
 
 # global settings
 grid_size_z = 256
@@ -31,36 +32,33 @@ grid_size_r = int(domain_AR * grid_size_z)
 CFL = 0.1
 eps = np.finfo(float).eps
 num_threads = 4
+implicit_diffusion = True
 
 plotset()
 plt.figure(figsize=(5 / domain_AR, 5))
 # Parameters
 brink_lam = 1e4
 moll_zone = dx * 2**0.5
-r_core = 0.125
-a_by_r_core = 0.34146341463414637
-a = a_by_r_core * r_core
-AR = 0.4285714285714286
+
+# torus geometry details
+r_core = 0.125  # core radius
+a_by_r_core = 0.34146341463414637  # tube-to-core radius ratio
+a = a_by_r_core * r_core  # tube radius
+AR = 0.4285714285714286  # tube cross section aspect ratio
 b = a * AR
+
+# flow and actuation parameter
+e = 0.0675
 freq_modes = np.array([16, 32])
 amplitude_modes = np.array([1.0, 0.3])
 freq = freq_modes[np.argmax(amplitude_modes)]
 omega = 2 * np.pi * freq
 omega_modes = 2 * np.pi * freq_modes
 d_AC_by_r_core = 0.11235582096628798
-e = 0.0675
 nu = omega * (d_AC_by_r_core * r_core) ** 2
+U_osc = e * a * np.sum(amplitude_modes * omega_modes)
 no_cycles = 30
 tEnd = no_cycles / freq
-
-# parameters for dumping data
-freqTimer_limit = 1 / freq
-data_per_cycle = 40
-dataTimer_limit = 1 / freq / data_per_cycle
-data_cycle_start = 20
-data_cycle_end = 30
-dataTimer_start = data_cycle_start / freq
-dataTimer_end = data_cycle_end / freq
 
 # Build discrete domain
 z = np.linspace(0 + dx / 2, 1 - dx / 2, grid_size_z)
@@ -103,6 +101,29 @@ FD_potential_solver = FastDiagonalisationPotentialSolver(grid_size_r, grid_size_
 advect_vorticity_via_eno3 = gen_advect_vorticity_via_eno3(
     dx, grid_size_r, grid_size_z, num_threads=num_threads
 )
+
+# timestep related parameters (aligned to end of cycle)
+freqTimer_limit = 1 / freq
+data_per_cycle = 100
+dataTimer_limit = 1 / freq / data_per_cycle
+data_cycle_start = 20
+data_cycle_end = 30
+dataTimer_start = data_cycle_start / freq
+dataTimer_end = data_cycle_end / freq
+
+diffusion_dt_limit = CFL / U_osc
+num_diffusion_substeps = max(int(freqTimer_limit / diffusion_dt_limit), data_per_cycle)
+diffusion_dt_limit = freqTimer_limit / num_diffusion_substeps
+dt_limit = min(diffusion_dt_limit, freqTimer_limit, dataTimer_limit)
+
+if implicit_diffusion:
+    implicit_diffusion_stepper = ImplicitEulerDiffusionStepper(
+        time_step=dt_limit,
+        kinematic_viscosity=nu,
+        grid_size_r=grid_size_r,
+        grid_size_z=grid_size_z,
+        dx=dx,
+    )
 
 # solver loop
 while t < tEnd:
@@ -158,17 +179,20 @@ while t < tEnd:
     u_r[...] += u_r_divg
 
     # get dt
-    dt = min(
-        0.9 * dx**2 / 4 / nu,
-        CFL / (np.amax(np.fabs(u_z) + np.fabs(u_r)) + eps),
-        0.01 * freqTimer_limit,
-    )
-    if freqTimer + dt > freqTimer_limit:
-        dt = freqTimer_limit - freqTimer
-    if dataTimer + dt > dataTimer_limit:
-        dt = dataTimer_limit - dataTimer
-    if t + dt > tEnd:
-        dt = tEnd - t
+    if implicit_diffusion:
+        dt = dt_limit
+    else:
+        dt = min(
+            0.9 * dx**2 / 4 / nu,
+            CFL / (np.amax(np.fabs(u_z) + np.fabs(u_r)) + eps),
+            0.01 * freqTimer_limit,
+        )
+        if freqTimer + dt > freqTimer_limit:
+            dt = freqTimer_limit - freqTimer
+        if dataTimer + dt > dataTimer_limit:
+            dt = dataTimer_limit - dataTimer
+        if t + dt > tEnd:
+            dt = tEnd - t
 
     # integrate averaged fields
     avg_psi[...] += psi * dt
@@ -197,7 +221,10 @@ while t < tEnd:
     advect_vorticity_via_eno3(vorticity, u_z, u_r, dt)
 
     # diffuse vorticity
-    diffusion_RK2_unb(vorticity, temp_vorticity, R, nu, dt, dx)
+    if implicit_diffusion:
+        implicit_diffusion_stepper.step(vorticity_field=vorticity, dt=dt)
+    else:
+        diffusion_RK2_unb(vorticity, temp_vorticity, R, nu, dt, dx)
 
     #  update time
     t += dt
@@ -206,7 +233,7 @@ while t < tEnd:
     if t > dataTimer_start and t < dataTimer_end:
         dataTimer = dataTimer + dt
     if it % 100 == 0:
-        print(t, np.amax(vorticity))
+        print(t, dt, np.amax(vorticity))
 
 
 os.system("rm -f 2D_advect.mp4")
