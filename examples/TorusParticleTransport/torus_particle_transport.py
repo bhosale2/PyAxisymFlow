@@ -238,7 +238,7 @@ while t < tEnd:
     # get dt
     dt = min(
         0.9 * dx**2 / 4 / nu,
-        CFL / (np.amax(np.fabs(u_z) + np.fabs(u_r)) + eps),
+        CFL * dx / (np.amax(np.fabs(u_z) + np.fabs(u_r)) + eps),
         LCFL / (np.amax(np.fabs(vorticity)) + eps),
         0.01 * freqTimer_limit,
     )
