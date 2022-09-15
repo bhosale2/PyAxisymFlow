@@ -184,7 +184,7 @@ while t < tEnd:
     else:
         dt = min(
             0.9 * dx**2 / 4 / nu,
-            CFL / (np.amax(np.fabs(u_z) + np.fabs(u_r)) + eps),
+            CFL * dx / (np.amax(np.fabs(u_z) + np.fabs(u_r)) + eps),
             0.01 * freqTimer_limit,
         )
         if freqTimer + dt > freqTimer_limit:
