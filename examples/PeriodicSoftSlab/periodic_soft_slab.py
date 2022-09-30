@@ -24,6 +24,7 @@ from pyaxisymflow.kernels.periodic_boundary_ghost_comm import (
     gen_periodic_boundary_ghost_comm,
     gen_periodic_boundary_ghost_comm_eta,
 )
+from pyaxisymflow.kernels import bounded_static_PDE_extrapolation
 from pyaxisymflow.elasto_kernels.div_tau import (
     update_vorticity_from_solid_stress_periodic,
 )
@@ -31,7 +32,6 @@ from pyaxisymflow.elasto_kernels.solid_sigma import solid_sigma_periodic
 from pyaxisymflow.elasto_kernels.advect_refmap_via_eno3 import (
     gen_advect_refmap_via_eno3_periodic,
 )
-from extrap_LS import extrap_LS
 from theory_soft_slab import (
     theory_axisymmetric_soft_slab_spatial,
     theory_axisymmetric_soft_slab_temporal,
@@ -141,6 +141,16 @@ advect_vorticity_via_eno3_periodic = gen_advect_vorticity_via_eno3_periodic(
     dx, grid_size_r, grid_size_z, per_communicator1
 )
 
+extrapolate_refmap_via_static_pde = bounded_static_PDE_extrapolation(
+    dx=dx,
+    grid_size_r=grid_size_r,
+    grid_size_z=grid_size_z,
+    extrap_tol=extrap_tol,
+    extrap_band=extrap_zone,
+    periodic=True,
+    per_communicator_gen=per_communicator1,
+    per_communicator_eta=per_communicator2,
+)
 
 # solver loop
 while t < tEnd:
@@ -244,14 +254,8 @@ while t < tEnd:
 
     eta1[...] = inside_solid * eta1
     eta2[...] = inside_solid * eta2
-    per_communicator2(eta1)
-    per_communicator1(eta2)
-    extrap_LS(
-        dx, grid_size_r, grid_size_z, eps, eta1, -ball_phi, extrap_tol, extrap_zone
-    )
-    extrap_LS(
-        dx, grid_size_r, grid_size_z, eps, eta2, -ball_phi, extrap_tol, extrap_zone
-    )
+    extrapolate_refmap_via_static_pde.extrapolate(eta1, ball_phi)
+    extrapolate_refmap_via_static_pde.extrapolate(eta2, ball_phi)
 
     # compute solid stresses and blend
     solid_sigma_periodic(
