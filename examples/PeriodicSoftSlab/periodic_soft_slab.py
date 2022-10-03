@@ -24,7 +24,7 @@ from pyaxisymflow.kernels.periodic_boundary_ghost_comm import (
     gen_periodic_boundary_ghost_comm,
     gen_periodic_boundary_ghost_comm_eta,
 )
-from pyaxisymflow.kernels import bounded_static_PDE_extrapolation
+from pyaxisymflow.kernels.bounded_static_PDE_extrapolation import StaticPDEExtrapolation
 from pyaxisymflow.elasto_kernels.div_tau import (
     update_vorticity_from_solid_stress_periodic,
 )
@@ -38,7 +38,7 @@ from theory_soft_slab import (
 )
 
 
-def simualte_periodic_soft_slab(grid_size_r, Re, Er, domain_AR=32):
+def simualte_periodic_soft_slab(grid_size_r, Re, Er, domain_AR=32, zeta=1.0):
     # Build discrete domain
     max_r = 0.5
     max_z = max_r / domain_AR
@@ -47,50 +47,62 @@ def simualte_periodic_soft_slab(grid_size_r, Re, Er, domain_AR=32):
     z = np.linspace(0 + dx / 2, max_z - dx / 2, grid_size_z)
     r = np.linspace(0 + dx / 2, max_r - dx / 2, grid_size_r)
     Z, R = np.meshgrid(z, r)
+
+    # Build periodic communicators
+    ghost_size = 2
+    per_communicator1 = gen_periodic_boundary_ghost_comm(ghost_size)
+    per_communicator2 = gen_periodic_boundary_ghost_comm_eta(ghost_size, max_z, dx)
+
+    # Global parameters
     CFL = 0.1
     eps = np.finfo(float).eps
-
-    # Parameters
     brink_lam = 1e4
     moll_zone = np.sqrt(2) * dx
     extrap_zone = moll_zone + 3 * dx
     reinit_band = extrap_zone
-    wall_thickness = 0.05
-    R_wall_center = 0.25
-    R_tube = R_wall_center - wall_thickness
     extrap_tol = 1e-3
-    U_0 = 1.0
-    R_extent = 0.5
-    nondim_T = 300
-    tEnd = nondim_T * R_tube / U_0
-    T_ramp = 20 * R_tube / U_0
+
+    # Geometric parameters
+    wall_thickness_half = 0.05
+    R_wall_center = (
+        0.5 * max_r
+    )  # oscillating wall is located half way in the radial domain
+    R_tube = R_wall_center - wall_thickness_half
+    L = 2 * R_tube
+    L_f = R_tube * zeta / (1 + zeta)
+    L_s = R_tube / (1 + zeta)
+
     freqTimer = 0.0
     freq = 1
     freqTimer_limit = 0.1 / freq
     omega = 2 * np.pi * freq
-    V_wall = 1
-    L = 0.4
-    L_f = 0.1
-    L_s = 0.1
+
+    # Non-dimensional params:
+    # shear_rate = 2 * V_wall / (omega * L)
+    # zeta = L_f / L_s
+    # Re = shear_rate * omega * L_f ** 2 / nu_f
+    # Er = mu_f * shear_rate * omega / G
+    #
+    # We assume fluid and solid have the same density and viscosity
+    V_wall = 1.0
     shear_rate = 2 * V_wall / omega / L
     nu = shear_rate * omega * L_f**2 / Re
-    ghost_size = 2
-    per_communicator1 = gen_periodic_boundary_ghost_comm(ghost_size)
-    per_communicator2 = gen_periodic_boundary_ghost_comm_eta(ghost_size, max_z, dx)
     G = nu * shear_rate * omega / Er
-    rho_f = 1
-    r_ball = 0.1
-    # Build discrete domain
-    y_range = np.linspace(0, R_tube, 100)
+    rho_f = 1.0
+
+    # Set simulation time
+    nondim_T = 300
+    tEnd = nondim_T * R_tube / V_wall
+    T_ramp = 20 * R_tube / V_wall
 
     # load initial conditions
-    ball_phi = r_ball - R
-    ball_char_func = 0 * Z
-    smooth_Heaviside(ball_char_func, ball_phi, moll_zone)
-    inside_solid = ball_char_func > 0.5
-    phi0 = -np.sqrt((R - R_wall_center) ** 2) + wall_thickness
-    char_func0 = 0 * Z
-    smooth_Heaviside(char_func0, phi0, moll_zone)
+    solid_phi = L_s - R
+    solid_char_func = 0 * Z
+    smooth_Heaviside(solid_char_func, solid_phi, moll_zone)
+    inside_solid = solid_char_func > 0.5
+    wall_phi = -np.sqrt((R - R_wall_center) ** 2) + wall_thickness_half
+    wall_char_func = 0 * Z
+    smooth_Heaviside(wall_char_func, wall_phi, moll_zone)
 
     vorticity = 0 * Z
     penal_vorticity = 0 * Z
@@ -121,6 +133,7 @@ def simualte_periodic_soft_slab(grid_size_r, Re, Er, domain_AR=32):
     tau_z = 0 * Z
     tau_r = 0 * Z
     psi_inner = psi[..., ghost_size:-ghost_size].copy()
+
     FD_stokes_solver = FastDiagonalisationStokesSolver(
         grid_size_r,
         grid_size_z - 2 * ghost_size,
@@ -135,7 +148,7 @@ def simualte_periodic_soft_slab(grid_size_r, Re, Er, domain_AR=32):
         dx, grid_size_r, grid_size_z, per_communicator1
     )
 
-    extrapolate_refmap_via_static_pde = bounded_static_PDE_extrapolation(
+    extrapolate_refmap_via_static_pde = StaticPDEExtrapolation(
         dx=dx,
         grid_size_r=grid_size_r,
         grid_size_z=grid_size_z,
@@ -202,7 +215,7 @@ def simualte_periodic_soft_slab(grid_size_r, Re, Er, domain_AR=32):
             plt.contour(
                 Z,
                 R,
-                ball_char_func,
+                solid_char_func,
                 levels=[
                     0.5,
                 ],
@@ -211,7 +224,7 @@ def simualte_periodic_soft_slab(grid_size_r, Re, Er, domain_AR=32):
             plt.contour(
                 Z,
                 R,
-                char_func0,
+                wall_char_func,
                 levels=[
                     0.5,
                 ],
@@ -234,7 +247,7 @@ def simualte_periodic_soft_slab(grid_size_r, Re, Er, domain_AR=32):
         brinkmann_penalize(
             brink_lam,
             dt,
-            char_func0,
+            wall_char_func,
             V_wall * np.cos(omega * t),
             0.0,
             u_z_upen,
@@ -250,8 +263,8 @@ def simualte_periodic_soft_slab(grid_size_r, Re, Er, domain_AR=32):
 
         eta1[...] = inside_solid * eta1
         eta2[...] = inside_solid * eta2
-        extrapolate_refmap_via_static_pde.extrapolate(eta1, ball_phi)
-        extrapolate_refmap_via_static_pde.extrapolate(eta2, ball_phi)
+        extrapolate_refmap_via_static_pde.extrapolate(eta1, solid_phi)
+        extrapolate_refmap_via_static_pde.extrapolate(eta2, solid_phi)
 
         # compute solid stresses and blend
         solid_sigma_periodic(
@@ -270,9 +283,9 @@ def simualte_periodic_soft_slab(grid_size_r, Re, Er, domain_AR=32):
             per_communicator2,
         )
 
-        sigma_s_11[...] = ball_char_func * sigma_s_11
-        sigma_s_12[...] = ball_char_func * sigma_s_12
-        sigma_s_22[...] = ball_char_func * sigma_s_22
+        sigma_s_11[...] = solid_char_func * sigma_s_11
+        sigma_s_12[...] = solid_char_func * sigma_s_12
+        sigma_s_22[...] = solid_char_func * sigma_s_22
 
         update_vorticity_from_solid_stress_periodic(
             vorticity,
