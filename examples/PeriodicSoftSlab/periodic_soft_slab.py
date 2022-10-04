@@ -34,7 +34,6 @@ from pyaxisymflow.elasto_kernels.advect_refmap_via_eno3 import (
 )
 from theory_soft_slab import (
     theory_axisymmetric_soft_slab_spatial,
-    theory_axisymmetric_soft_slab_temporal,
 )
 
 
@@ -63,9 +62,10 @@ def simualte_periodic_soft_slab(grid_size_r, Re, Er, domain_AR=32, zeta=1.0):
     extrap_tol = 1e-3
 
     # Geometric parameters
+    wall_center_factor = 0.5  # With respect to domain r-size
     wall_thickness_half = 0.05
     R_wall_center = (
-        0.5 * max_r
+        wall_center_factor * max_r
     )  # oscillating wall is located half way in the radial domain
     R_tube = R_wall_center - wall_thickness_half
     L = 2 * R_tube
@@ -86,8 +86,8 @@ def simualte_periodic_soft_slab(grid_size_r, Re, Er, domain_AR=32, zeta=1.0):
     # We assume fluid and solid have the same density and viscosity
     V_wall = 1.0
     shear_rate = 2 * V_wall / omega / L
-    nu = shear_rate * omega * L_f**2 / Re
-    G = nu * shear_rate * omega / Er
+    nu_f = shear_rate * omega * L_f**2 / Re
+    G = nu_f * shear_rate * omega / Er
     rho_f = 1.0
 
     # Set simulation time
@@ -114,15 +114,6 @@ def simualte_periodic_soft_slab(grid_size_r, Re, Er, domain_AR=32, zeta=1.0):
     u_r_upen = 0 * Z
     eta1 = Z.copy()
     eta2 = R.copy()
-    t = 0
-    it = 0
-
-    Y, vel_sl, vel_fl = theory_axisymmetric_soft_slab_spatial(
-        L_f, L_s, Re, shear_rate, omega, G, V_wall
-    )
-
-    bad_phi = 0 * Z
-    phi_orig = 0 * Z
     sigma_s_11 = 0 * Z
     sigma_s_12 = 0 * Z
     sigma_s_22 = 0 * Z
@@ -134,12 +125,21 @@ def simualte_periodic_soft_slab(grid_size_r, Re, Er, domain_AR=32, zeta=1.0):
     tau_r = 0 * Z
     psi_inner = psi[..., ghost_size:-ghost_size].copy()
 
+    t = 0
+    it = 0
+
+    # Compute symbolized analytical solution
+    theory_axisymmetric_soft_slab_temporal, Y = theory_axisymmetric_soft_slab_spatial(
+        L_f, L_s, shear_rate, omega, G, V_wall, rho_f, nu_f
+    )
+
     FD_stokes_solver = FastDiagonalisationStokesSolver(
         grid_size_r,
         grid_size_z - 2 * ghost_size,
         dx,
         bc_type="homogenous_neumann_along_r_and_periodic_along_z",
     )
+
     advect_refmap_via_eno3_periodic = gen_advect_refmap_via_eno3_periodic(
         dx, grid_size_r, grid_size_z, per_communicator1, per_communicator2
     )
@@ -165,7 +165,7 @@ def simualte_periodic_soft_slab(grid_size_r, Re, Er, domain_AR=32, zeta=1.0):
         # get dt
         dt = min(
             CFL * dx / np.sqrt(G / rho_f),
-            0.9 * dx**2 / 4 / nu,
+            0.9 * dx**2 / 4 / nu_f,
             CFL * dx / (np.amax(np.fabs(u_z) + np.fabs(u_r)) + eps),
         )
         if freqTimer + dt > freqTimer_limit:
@@ -189,11 +189,11 @@ def simualte_periodic_soft_slab(grid_size_r, Re, Er, domain_AR=32, zeta=1.0):
             freqTimer = 0.0
 
             plt.plot(
-                R[: int(grid_size_r / 2), int(grid_size_z / 2)],
-                u_z[: int(grid_size_r / 2), int(grid_size_z / 2)],
+                R[: int(grid_size_r * wall_center_factor), int(grid_size_z / 2)],
+                u_z[: int(grid_size_r * wall_center_factor), int(grid_size_z / 2)],
             )
             plt.ylim([-V_wall, V_wall])
-            vel_comb = theory_axisymmetric_soft_slab_temporal(Y, t, L_s, vel_sl, vel_fl)
+            vel_comb = theory_axisymmetric_soft_slab_temporal(t)
             plt.scatter(Y, vel_comb, linewidth=3)
             plt.legend(["Simulation", "Theory"])
             plt.xlabel("R")
@@ -233,7 +233,6 @@ def simualte_periodic_soft_slab(grid_size_r, Re, Er, domain_AR=32, zeta=1.0):
             plt.savefig("vort_" + str("%0.4d" % (t * 100)) + ".png")
             plt.clf()
 
-        # eta1_old[...] = eta1
         advect_refmap_via_eno3_periodic(
             eta1,
             eta2,
@@ -242,6 +241,7 @@ def simualte_periodic_soft_slab(grid_size_r, Re, Er, domain_AR=32, zeta=1.0):
             dt,
         )
 
+        # Velocity penalization to update wall velocity
         u_z_upen[...] = u_z
         u_r_upen[...] = u_r
         brinkmann_penalize(
@@ -305,7 +305,7 @@ def simualte_periodic_soft_slab(grid_size_r, Re, Er, domain_AR=32, zeta=1.0):
 
         # diffuse vorticity
         diffusion_RK2_periodic(
-            vorticity, temp_vorticity, R, nu, dt, dx, per_communicator1
+            vorticity, temp_vorticity, R, nu_f, dt, dx, per_communicator1
         )
         #  update time
         t += dt

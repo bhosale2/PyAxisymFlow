@@ -12,18 +12,18 @@ from sympy import (
 from sympy.solvers.solveset import linsolve
 
 
-def theory_axisymmetric_soft_slab_spatial(L_f, L_s, Re, shear_rate, omega, G, V_wall):
+def theory_axisymmetric_soft_slab_spatial(
+    L_f, L_s, shear_rate, omega, G, V_wall, rho_f, nu_f
+):
 
     # Theoretical Solution
     y, t1 = symbols("y, t1", real=True)
 
     # define params
-    rho_f = 1.0
     rho_s = rho_f
-
-    nu_f = shear_rate * omega * L_f**2 / Re
-    mu_f = nu_f * rho_f
     nu_s = nu_f
+
+    mu_f = nu_f * rho_f
     mu_s = nu_s * rho_s
 
     lam1 = np.sqrt(1j * omega / nu_f)
@@ -67,11 +67,11 @@ def theory_axisymmetric_soft_slab_spatial(L_f, L_s, Re, shear_rate, omega, G, V_
     res_y = 30
     eps = 1e-20
     Y = np.linspace(eps, (L_s + L_f), res_y)
-    return Y, vel_sl, vel_fl
 
+    def theory_axisymmetric_soft_slab_temporal(time):
+        vel_comb = (Y < L_s) * np.real(vel_sl(Y, time * np.ones_like(Y))) + (
+            Y >= L_s
+        ) * np.real(vel_fl(Y, time * np.ones_like(Y)))
+        return vel_comb
 
-def theory_axisymmetric_soft_slab_temporal(Y, t, L_s, vel_sl, vel_fl):
-    vel_comb = (Y < L_s) * np.real(vel_sl(Y, t * np.ones_like(Y))) + (
-        Y >= L_s
-    ) * np.real(vel_fl(Y, t * np.ones_like(Y)))
-    return vel_comb
+    return theory_axisymmetric_soft_slab_temporal, Y
