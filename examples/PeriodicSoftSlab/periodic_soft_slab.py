@@ -1,7 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import os
-from pyaxisymflow.utils.custom_cmap import lab_cmp
 from pyaxisymflow.kernels.brinkmann_penalize import brinkmann_penalize
 from pyaxisymflow.kernels.compute_velocity_from_psi import (
     compute_velocity_from_psi_periodic,
@@ -35,9 +34,21 @@ from pyaxisymflow.elasto_kernels.advect_refmap_via_eno3 import (
 from theory_soft_slab import (
     theory_axisymmetric_soft_slab_spatial,
 )
+from periodic_soft_slab_post_processing import (
+    plot_velocity_profile_with_theory,
+    plot_vorticity_contours,
+)
 
 
-def simualte_periodic_soft_slab(grid_size_r, Re, Er, domain_AR=32, zeta=1.0):
+def simualte_periodic_soft_slab(
+    grid_size_r,
+    Re,
+    Er,
+    domain_AR=32,
+    zeta=1.0,
+    compare_with_theory=True,
+    plot_contour=True,
+):
     # Build discrete domain
     max_r = 0.5
     max_z = max_r / domain_AR
@@ -62,20 +73,19 @@ def simualte_periodic_soft_slab(grid_size_r, Re, Er, domain_AR=32, zeta=1.0):
     extrap_tol = 1e-3
 
     # Geometric parameters
-    wall_center_factor = 0.5  # With respect to domain r-size
     wall_thickness_half = 0.05
     R_wall_center = (
-        wall_center_factor * max_r
+        0.5 * max_r
     )  # oscillating wall is located half way in the radial domain
     R_tube = R_wall_center - wall_thickness_half
     L = 2 * R_tube
     L_f = R_tube * zeta / (1 + zeta)
     L_s = R_tube / (1 + zeta)
 
-    freqTimer = 0.0
     freq = 1
     freqTimer_limit = 0.1 / freq
     omega = 2 * np.pi * freq
+    freqTimer = freqTimer_limit
 
     # Non-dimensional params:
     # shear_rate = 2 * V_wall / (omega * L)
@@ -159,6 +169,13 @@ def simualte_periodic_soft_slab(grid_size_r, Re, Er, domain_AR=32, zeta=1.0):
         per_communicator_eta=per_communicator2,
     )
 
+    # Results to return
+    time_history = []
+    sim_pos = R[: int(grid_size_r * R_tube / max_r), int(grid_size_z / 2)]
+    sim_vel = []
+    theory_pos = Y.copy()
+    theory_vel = []
+
     # solver loop
     while t < tEnd:
 
@@ -184,54 +201,38 @@ def simualte_periodic_soft_slab(grid_size_r, Re, Er, domain_AR=32, zeta=1.0):
         psi[..., ghost_size:-ghost_size] = psi_inner
         compute_velocity_from_psi_periodic(u_z, u_r, psi, R, dx, per_communicator1)
 
-        # plotting!!
         if freqTimer >= freqTimer_limit:
             freqTimer = 0.0
 
-            plt.plot(
-                R[: int(grid_size_r * wall_center_factor), int(grid_size_z / 2)],
-                u_z[: int(grid_size_r * wall_center_factor), int(grid_size_z / 2)],
-            )
-            plt.ylim([-V_wall, V_wall])
-            vel_comb = theory_axisymmetric_soft_slab_temporal(t)
-            plt.scatter(Y, vel_comb, linewidth=3)
-            plt.legend(["Simulation", "Theory"])
-            plt.xlabel("R")
-            plt.ylabel("U_z")
-            plt.savefig("snap_" + str("%0.4d" % (t * 100)) + ".png")
-            plt.clf()
-            plt.contourf(
-                Z,
-                R,
-                vorticity,
-                levels=np.linspace(-25, 25, 25),
-                extend="both",
-                cmap=lab_cmp,
-            )
-            plt.colorbar()
-            plt.contour(
-                Z, R, inside_solid * eta1, levels=20, cmap="Greens", linewidths=2
-            )
-            plt.contour(
-                Z,
-                R,
-                solid_char_func,
-                levels=[
-                    0.5,
-                ],
-                colors="k",
-            )
-            plt.contour(
-                Z,
-                R,
-                wall_char_func,
-                levels=[
-                    0.5,
-                ],
-                colors="k",
-            )
-            plt.savefig("vort_" + str("%0.4d" % (t * 100)) + ".png")
-            plt.clf()
+            theory_v = theory_axisymmetric_soft_slab_temporal(t)
+            sim_v = u_z[: int(grid_size_r * R_tube / max_r), int(grid_size_z / 2)]
+
+            # Add to return parameters
+            time_history.append(t)
+            theory_vel.append(theory_v)
+            sim_vel.append(sim_v)
+
+            # Plotting
+            if compare_with_theory:
+                plot_velocity_profile_with_theory(
+                    sim_r=sim_pos,
+                    sim_v=sim_v,
+                    theory_r=Y,
+                    theory_v=theory_v,
+                    time=t,
+                    v_wall=V_wall,
+                )
+
+            if plot_contour:
+                plot_vorticity_contours(
+                    z_grid=Z,
+                    r_grid=R,
+                    vorticity=vorticity,
+                    solid_eta=inside_solid * eta1,
+                    solid_char_func=solid_char_func,
+                    wall_char_func=wall_char_func,
+                    time=t,
+                )
 
         advect_refmap_via_eno3_periodic(
             eta1,
@@ -313,6 +314,14 @@ def simualte_periodic_soft_slab(grid_size_r, Re, Er, domain_AR=32, zeta=1.0):
         it += 1
         if it % 100 == 0:
             print(f"time: {t:.4f}, maxvort: {np.amax(vorticity):.4f}")
+
+    return {
+        "time_history": time_history,
+        "sim_positions": sim_pos,
+        "sim_velocities": sim_vel,
+        "theory_positions": theory_pos,
+        "theory_velocities": theory_vel,
+    }
 
 
 if __name__ == "__main__":
