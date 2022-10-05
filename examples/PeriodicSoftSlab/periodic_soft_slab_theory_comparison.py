@@ -6,7 +6,7 @@ from periodic_soft_slab_post_processing import plot_time_dependent_theory_compar
 
 if __name__ == "__main__":
     filename = "sim_data.pkl"
-    save_result = True
+    save_result = False
 
     if save_result:
         result = simualte_periodic_soft_slab(

@@ -1,6 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
+from pyaxisymflow.utils.plotset import plotset
 from pyaxisymflow.utils.custom_cmap import lab_cmp
 
 
@@ -94,4 +95,42 @@ def plot_time_dependent_theory_comparison(
     ax.set_ylabel(r"$r/(L_s + L_f)$", fontsize=18)
     ax.set_xlim([-1, 1])
     ax.set_ylim([0, 1])
+
+    fig.savefig("theory_comparison.png")
+    plt.show()
+
+
+def plot_convergence(dx, l2_error, linf_error):
+    plotset()
+    fig, ax = plt.subplots()
+    num_time = l2_error.shape[1]
+
+    markers = ["o", "v", "s", "d", "^"]
+    for i in range(num_time):
+        ax.scatter(
+            dx,
+            l2_error[:, i],
+            s=100,
+            facecolor="none",
+            edgecolor=lab_cmp(0.1),
+            linewidths=2,
+            marker=markers[i],
+        )
+        ax.scatter(
+            dx,
+            linf_error[:, i],
+            s=100,
+            facecolor="none",
+            edgecolor=lab_cmp(0.9),
+            linewidths=2,
+            marker=markers[i],
+        )
+
+    ax.set_xscale("log")
+    ax.set_yscale("log")
+    ax.set_xlabel(r"$h$")
+    ax.set_ylabel(r"$\|\mathbf{e}\|$")
+    ax.set_ylim([1e-6, 1e-2])
+
+    fig.savefig("spatial_convergence.png")
     plt.show()
