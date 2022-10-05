@@ -1,5 +1,6 @@
 import numpy as np
 import os
+from pyaxisymflow.utils.dump_vtk import vtk_init, vtk_write
 from pyaxisymflow.kernels.brinkmann_penalize import brinkmann_penalize
 from pyaxisymflow.kernels.compute_velocity_from_psi import (
     compute_velocity_from_psi_periodic,
@@ -47,6 +48,7 @@ def simualte_periodic_soft_slab(
     zeta=1.0,
     compare_with_theory=True,
     plot_contour=True,
+    save_vtk=False,
 ):
     # Build discrete domain
     max_r = 0.5
@@ -168,6 +170,11 @@ def simualte_periodic_soft_slab(
         per_communicator_eta=per_communicator2,
     )
 
+    if save_vtk:
+        if not os.path.exists("vtk_data"):
+            os.system("mkdir vtk_data")
+        vtk_image_data, temp_vtk_array, writer = vtk_init(grid_size_z, grid_size_r)
+
     # Results to return
     sim_pos = R[: int(grid_size_r * R_tube / max_r), int(grid_size_z / 2)]
     theory_pos = Y.copy()
@@ -213,6 +220,26 @@ def simualte_periodic_soft_slab(
             time_history.append(t * freq)
             nondim_theory_vel.append(theory_v / V_wall)
             nondim_sim_vel.append(sim_v / V_wall)
+
+            # save vtk
+            if save_vtk:
+                vtk_write(
+                    "vtk_data/axisym_avg_" + str("%0.4d" % (t * 100)) + ".vti",
+                    vtk_image_data,
+                    temp_vtk_array,
+                    writer,
+                    [
+                        "solid_char_func",
+                        "wall_char_func",
+                        "vorticity",
+                        "psi",
+                        "u_z",
+                        "u_r",
+                    ],
+                    [solid_char_func, wall_char_func, vorticity, psi, u_z, u_r],
+                    grid_size_z,
+                    grid_size_r,
+                )
 
             # Plotting
             if compare_with_theory:
