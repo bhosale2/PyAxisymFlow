@@ -36,7 +36,6 @@ from theory_soft_slab import (
 from periodic_soft_slab_post_processing import (
     plot_velocity_profile_with_theory,
     plot_vorticity_contours,
-    plot_time_dependent_theory_comparison,
 )
 
 
@@ -101,7 +100,7 @@ def simualte_periodic_soft_slab(
     rho_f = 1.0
 
     # Set simulation time
-    nondim_T = 20
+    nondim_T = 15
     tEnd = nondim_T / freq
     T_ramp = tEnd / 15.0
 
@@ -315,61 +314,17 @@ def simualte_periodic_soft_slab(
         t += dt
         freqTimer += dt
         it += 1
-        if it % 100 == 0:
+        if it % 1000 == 0:
             print(f"time: {t:.4f}, maxvort: {np.amax(vorticity):.4f}")
 
     return {
-        "time_history": time_history,
+        "time_history": np.array(time_history),
         "sim_positions": nondim_sim_pos,
-        "sim_velocities": nondim_sim_vel,
+        "sim_velocities": np.array(nondim_sim_vel),
         "theory_positions": nondim_theory_pos,
-        "theory_velocities": nondim_theory_vel,
+        "theory_velocities": np.array(nondim_theory_vel),
     }
 
 
 if __name__ == "__main__":
-    filename = "sim_data.pkl"
-    save_result = False
-
-    import pickle
-
-    if save_result:
-        result = simualte_periodic_soft_slab(
-            grid_size_r=256,
-            Re=10,
-            Er=0.25,
-            compare_with_theory=False,
-            plot_contour=False,
-        )
-
-        with open(filename, "wb") as f:
-            pickle.dump(result, f)
-
-    else:
-        with open(filename, "rb") as f:
-            result = pickle.load(f)
-
-    time_history = result["time_history"]
-    sim_positions = result["sim_positions"]
-    sim_velocities = result["sim_velocities"]
-    theory_positions = result["theory_positions"]
-    theory_velocities = result["theory_velocities"]
-
-    np_time_history = np.array(time_history)
-    nondim_t_list = np.arange(0.0, 1.1, 0.1)
-    offset = 10.0  # Plot after 10 cycles so the system is dynamically stable
-
-    idx = []
-    for nondim_t in nondim_t_list:
-        idx.append(np.argmin(np.abs(np_time_history - offset - nondim_t)))
-
-    idx = np.array(idx, dtype=int)
-    np_sim_velocities = np.array(sim_velocities)
-    np_theory_velocities = np.array(theory_velocities)
-    plot_time_dependent_theory_comparison(
-        times=np.abs(np_time_history[idx] - offset),
-        sim_r=sim_positions,
-        sim_v_list=np_sim_velocities[idx],
-        theory_r=theory_positions,
-        theory_v_list=np_theory_velocities[idx],
-    )
+    simualte_periodic_soft_slab(grid_size_r=256, Re=10, Er=0.25)
