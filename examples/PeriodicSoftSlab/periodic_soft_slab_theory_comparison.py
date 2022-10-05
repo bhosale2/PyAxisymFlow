@@ -30,7 +30,7 @@ if __name__ == "__main__":
     theory_positions = result["theory_positions"]
     theory_velocities = result["theory_velocities"]
 
-    nondim_t_list = np.arange(0.0, 1.1, 0.1)
+    nondim_t_list = np.array([0.75, 1.0])
     offset = 10.0  # Plot after 10 cycles so the system is dynamically stable
 
     idx = []
