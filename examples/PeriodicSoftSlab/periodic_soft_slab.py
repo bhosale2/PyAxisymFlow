@@ -1,5 +1,4 @@
 import numpy as np
-import matplotlib.pyplot as plt
 import os
 from pyaxisymflow.kernels.brinkmann_penalize import brinkmann_penalize
 from pyaxisymflow.kernels.compute_velocity_from_psi import (
@@ -37,6 +36,7 @@ from theory_soft_slab import (
 from periodic_soft_slab_post_processing import (
     plot_velocity_profile_with_theory,
     plot_vorticity_contours,
+    plot_time_dependent_theory_comparison,
 )
 
 
@@ -101,9 +101,9 @@ def simualte_periodic_soft_slab(
     rho_f = 1.0
 
     # Set simulation time
-    nondim_T = 300
-    tEnd = nondim_T * R_tube / V_wall
-    T_ramp = 20 * R_tube / V_wall
+    nondim_T = 20
+    tEnd = nondim_T / freq
+    T_ramp = tEnd / 15.0
 
     # load initial conditions
     solid_phi = L_s - R
@@ -170,11 +170,14 @@ def simualte_periodic_soft_slab(
     )
 
     # Results to return
-    time_history = []
     sim_pos = R[: int(grid_size_r * R_tube / max_r), int(grid_size_z / 2)]
-    sim_vel = []
     theory_pos = Y.copy()
-    theory_vel = []
+
+    time_history = []
+    nondim_sim_pos = sim_pos / R_tube
+    nondim_theory_pos = theory_pos / R_tube
+    nondim_sim_vel = []
+    nondim_theory_vel = []
 
     # solver loop
     while t < tEnd:
@@ -208,16 +211,16 @@ def simualte_periodic_soft_slab(
             sim_v = u_z[: int(grid_size_r * R_tube / max_r), int(grid_size_z / 2)]
 
             # Add to return parameters
-            time_history.append(t)
-            theory_vel.append(theory_v)
-            sim_vel.append(sim_v)
+            time_history.append(t * freq)
+            nondim_theory_vel.append(theory_v / V_wall)
+            nondim_sim_vel.append(sim_v / V_wall)
 
             # Plotting
             if compare_with_theory:
                 plot_velocity_profile_with_theory(
                     sim_r=sim_pos,
                     sim_v=sim_v,
-                    theory_r=Y,
+                    theory_r=theory_pos,
                     theory_v=theory_v,
                     time=t,
                     v_wall=V_wall,
@@ -317,12 +320,56 @@ def simualte_periodic_soft_slab(
 
     return {
         "time_history": time_history,
-        "sim_positions": sim_pos,
-        "sim_velocities": sim_vel,
-        "theory_positions": theory_pos,
-        "theory_velocities": theory_vel,
+        "sim_positions": nondim_sim_pos,
+        "sim_velocities": nondim_sim_vel,
+        "theory_positions": nondim_theory_pos,
+        "theory_velocities": nondim_theory_vel,
     }
 
 
 if __name__ == "__main__":
-    simualte_periodic_soft_slab(grid_size_r=256, Re=10, Er=0.25)
+    filename = "sim_data.pkl"
+    save_result = False
+
+    import pickle
+
+    if save_result:
+        result = simualte_periodic_soft_slab(
+            grid_size_r=256,
+            Re=10,
+            Er=0.25,
+            compare_with_theory=False,
+            plot_contour=False,
+        )
+
+        with open(filename, "wb") as f:
+            pickle.dump(result, f)
+
+    else:
+        with open(filename, "rb") as f:
+            result = pickle.load(f)
+
+    time_history = result["time_history"]
+    sim_positions = result["sim_positions"]
+    sim_velocities = result["sim_velocities"]
+    theory_positions = result["theory_positions"]
+    theory_velocities = result["theory_velocities"]
+
+    np_time_history = np.array(time_history)
+    nondim_t_list = np.arange(0.0, 1.1, 0.1)
+    offset = 10.0  # Plot after 10 cycles so the system is dynamically stable
+
+    idx = []
+    for nondim_t in nondim_t_list:
+        idx.append(np.argmin(np.abs(np_time_history - offset - nondim_t)))
+
+    idx = np.array(idx, dtype=int)
+    np_sim_velocities = np.array(sim_velocities)
+    np_theory_velocities = np.array(theory_velocities)
+    plot_time_dependent_theory_comparison(
+        times=np.abs(np_time_history[idx] - offset),
+        sim_r=sim_positions,
+        sim_v_list=np_sim_velocities[idx],
+        theory_r=theory_positions,
+        theory_v_list=np_theory_velocities[idx],
+    )

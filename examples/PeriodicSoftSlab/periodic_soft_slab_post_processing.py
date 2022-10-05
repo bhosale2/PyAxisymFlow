@@ -59,3 +59,39 @@ def plot_vorticity_contours(
 
     fig.savefig("vort_" + str("%0.4d" % (time * 100)) + ".png")
     plt.close()
+
+
+def plot_time_dependent_theory_comparison(
+    times,
+    sim_r,
+    sim_v_list,
+    theory_r,
+    theory_v_list,
+):
+    assert len(times) == len(sim_v_list), "Simulation list length mismatch"
+    assert len(times) == len(theory_v_list), "Theory list length mismatch"
+
+    fig, ax = plt.subplots()
+    fig.set_size_inches(10, 8)
+    for i in range(len(times)):
+        color = lab_cmp(times[i])
+        ax.plot(
+            sim_v_list[i, :],
+            sim_r,
+            lw=2,
+            color=color,
+            label=r"$t/T$={:.1f}".format(times[i]),
+        )
+        ax.scatter(
+            theory_v_list[i, :],
+            theory_r,
+            facecolor="none",
+            edgecolor=color,
+            linewidths=2,
+        )
+    ax.legend(fontsize=14)
+    ax.set_xlabel(r"$v_z / \hat{V}_{wall}$", fontsize=18)
+    ax.set_ylabel(r"$r/(L_s + L_f)$", fontsize=18)
+    ax.set_xlim([-1, 1])
+    ax.set_ylim([0, 1])
+    plt.show()
