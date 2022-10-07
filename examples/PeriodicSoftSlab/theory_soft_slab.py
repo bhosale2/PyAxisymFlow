@@ -13,7 +13,15 @@ from sympy.solvers.solveset import linsolve
 
 
 def theory_axisymmetric_soft_slab_spatial(
-    L_f, L_s, shear_rate, omega, G, V_wall, rho_f, nu_f
+    L_f,
+    L_s,
+    shear_rate,
+    omega,
+    G,
+    V_wall,
+    rho_f,
+    nu_f,
+    **kwargs,
 ):
 
     # Theoretical Solution
@@ -64,9 +72,9 @@ def theory_axisymmetric_soft_slab_spatial(
     vel_fl = lambdify([y, t1], vel_f)
     vel_sl = lambdify([y, t1], vel_s)
 
-    res_y = 30
     eps = 1e-20
-    Y = np.linspace(eps, (L_s + L_f), res_y)
+
+    Y = kwargs.pop("resolution", np.linspace(eps, (L_s + L_f), 30)).copy()
 
     def theory_axisymmetric_soft_slab_temporal(time):
         vel_comb = (Y < L_s) * np.real(vel_sl(Y, time * np.ones_like(Y))) + (

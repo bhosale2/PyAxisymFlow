@@ -46,6 +46,7 @@ def simualte_periodic_soft_slab(
     Er,
     domain_AR=32,
     zeta=1.0,
+    match_resolution=False,
     compare_with_theory=True,
     plot_contour=True,
     save_vtk=False,
@@ -96,10 +97,10 @@ def simualte_periodic_soft_slab(
     #
     # We assume fluid and solid have the same density and viscosity
     V_wall = 1.0
+    rho_f = 1.0
     shear_rate = 2 * V_wall / omega / L
     nu_f = shear_rate * omega * L_f**2 / Re
-    G = nu_f * shear_rate * omega / Er
-    rho_f = 1.0
+    G = rho_f * nu_f * shear_rate * omega / Er
 
     # Set simulation time
     nondim_T = 15
@@ -139,11 +140,6 @@ def simualte_periodic_soft_slab(
     t = 0
     it = 0
 
-    # Compute symbolized analytical solution
-    theory_axisymmetric_soft_slab_temporal, Y = theory_axisymmetric_soft_slab_spatial(
-        L_f, L_s, shear_rate, omega, G, V_wall, rho_f, nu_f
-    )
-
     FD_stokes_solver = FastDiagonalisationStokesSolver(
         grid_size_r,
         grid_size_z - 2 * ghost_size,
@@ -175,10 +171,41 @@ def simualte_periodic_soft_slab(
             os.system("mkdir vtk_data")
         vtk_image_data, temp_vtk_array, writer = vtk_init(grid_size_z, grid_size_r)
 
-    # Results to return
     sim_pos = R[: int(grid_size_r * R_tube / max_r), int(grid_size_z / 2)]
+
+    # Compute symbolized analytical solution
+    if match_resolution:
+        (
+            theory_axisymmetric_soft_slab_temporal,
+            Y,
+        ) = theory_axisymmetric_soft_slab_spatial(
+            L_f,
+            L_s,
+            shear_rate,
+            omega,
+            G,
+            V_wall,
+            rho_f,
+            nu_f,
+            resolution=sim_pos,
+        )
+    else:
+        (
+            theory_axisymmetric_soft_slab_temporal,
+            Y,
+        ) = theory_axisymmetric_soft_slab_spatial(
+            L_f,
+            L_s,
+            shear_rate,
+            omega,
+            G,
+            V_wall,
+            rho_f,
+            nu_f,
+        )
     theory_pos = Y.copy()
 
+    # Results to return
     time_history = []
     nondim_sim_pos = sim_pos / R_tube
     nondim_theory_pos = theory_pos / R_tube
@@ -229,6 +256,7 @@ def simualte_periodic_soft_slab(
                     temp_vtk_array,
                     writer,
                     [
+                        "eta1",
                         "solid_char_func",
                         "wall_char_func",
                         "vorticity",
@@ -236,7 +264,7 @@ def simualte_periodic_soft_slab(
                         "u_z",
                         "u_r",
                     ],
-                    [solid_char_func, wall_char_func, vorticity, psi, u_z, u_r],
+                    [eta1, solid_char_func, wall_char_func, vorticity, psi, u_z, u_r],
                     grid_size_z,
                     grid_size_r,
                 )
