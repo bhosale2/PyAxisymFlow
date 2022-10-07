@@ -81,7 +81,7 @@ def plot_time_dependent_theory_comparison(
             sim_r,
             lw=2,
             color=color,
-            label=r"$t/T$={:.1f}".format(times[i]),
+            label=r"$t/T$={:.2f}".format(times[i]),
         )
         ax.scatter(
             theory_v_list[i, :],
@@ -126,11 +126,16 @@ def plot_convergence(dx, l2_error, linf_error):
             marker=markers[i],
         )
 
+    h_space = np.linspace(1e-6, 1.0, 100)
+    ax.plot(h_space, 30 * h_space, "--k")
+    ax.plot(h_space, 100 * h_space**2, "--k")
+
     ax.set_xscale("log")
     ax.set_yscale("log")
     ax.set_xlabel(r"$h$")
     ax.set_ylabel(r"$\|\mathbf{e}\|$")
-    ax.set_ylim([1e-6, 1e-2])
+    ax.set_xlim([7e-4, 1.5e-2])
+    ax.set_ylim([1e-6, 1.0])
 
     fig.savefig("spatial_convergence.png")
     plt.show()
