@@ -1,5 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
+from matplotlib.colors import ListedColormap
 
 from pyaxisymflow.utils.plotset import plotset
 from pyaxisymflow.utils.custom_cmap import lab_cmp
@@ -139,3 +140,39 @@ def plot_convergence(dx, l2_error, linf_error):
 
     fig.savefig("spatial_convergence.png")
     plt.show()
+
+
+def soft_slab_plotset():
+    plt.rcParams["font.family"] = "Times New Roman"
+
+    plt.rcParams["xtick.direction"] = "in"
+    plt.rcParams["ytick.direction"] = "in"
+    plt.rcParams["xtick.major.size"] = 15.0
+    plt.rcParams["xtick.major.width"] = 2.0
+    plt.rcParams["xtick.minor.size"] = 7.0
+    plt.rcParams["xtick.minor.width"] = 1.0
+    plt.rcParams["ytick.major.size"] = 15.0
+    plt.rcParams["ytick.major.width"] = 2.0
+    plt.rcParams["ytick.minor.size"] = 7.0
+    plt.rcParams["ytick.minor.width"] = 1.0
+    plt.rcParams["xtick.major.pad"] = 10.0
+    plt.rcParams["xtick.minor.pad"] = 10.0
+    plt.rcParams["ytick.major.pad"] = 10.0
+    plt.rcParams["ytick.minor.pad"] = 10.0
+
+    plt.rcParams["xtick.labelsize"] = 36.0
+    plt.rcParams["ytick.labelsize"] = 36.0
+
+    plt.rcParams["axes.linewidth"] = 2.0
+    plt.rcParams["lines.linewidth"] = 4.0
+    plt.rcParams["axes.grid"] = False
+
+    bwr = plt.get_cmap("bwr")
+
+    new_colors = np.vstack(
+        (
+            bwr(np.linspace(0.0, 1.0, 256)),
+            bwr(np.linspace(1.0, 0.0, 256)),
+        )
+    )
+    return ListedColormap(new_colors, "BimodalRedBlue")
