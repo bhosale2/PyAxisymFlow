@@ -167,9 +167,14 @@ def simualte_periodic_soft_slab(
     )
 
     if save_vtk:
+        multiple_factor = 128
+        domain_z_range = max_z - 2 * ghost_size * dx
+        domain_z_grid_size = grid_size_z - 2 * ghost_size
         if not os.path.exists("vtk_data"):
             os.system("mkdir vtk_data")
-        vtk_image_data, temp_vtk_array, writer = vtk_init(grid_size_z, grid_size_r)
+        vtk_image_data, temp_vtk_array, writer = vtk_init(
+            domain_z_grid_size * multiple_factor, grid_size_r
+        )
 
     sim_pos = R[: int(grid_size_r * R_tube / max_r), int(grid_size_z / 2)]
 
@@ -250,6 +255,32 @@ def simualte_periodic_soft_slab(
 
             # save vtk
             if save_vtk:
+                extended_solid_char_func = np.tile(
+                    solid_char_func[:, ghost_size:-ghost_size], multiple_factor
+                )
+                extended_wall_char_func = np.tile(
+                    wall_char_func[:, ghost_size:-ghost_size], multiple_factor
+                )
+                extended_vorticity = np.tile(
+                    vorticity[:, ghost_size:-ghost_size], multiple_factor
+                )
+                extended_u_z = np.tile(u_z[:, ghost_size:-ghost_size], multiple_factor)
+
+                extended_eta1 = np.empty(
+                    (
+                        grid_size_r,
+                        domain_z_grid_size * multiple_factor,
+                    ),
+                    dtype=np.float64,
+                )
+                for i in range(multiple_factor):
+                    extended_eta1[
+                        :,
+                        i * domain_z_grid_size : (i + 1) * domain_z_grid_size,
+                    ] = (
+                        eta1[:, ghost_size:-ghost_size] + i * domain_z_range
+                    )
+
                 vtk_write(
                     "vtk_data/axisym_avg_" + str("%0.4d" % (t * 100)) + ".vti",
                     vtk_image_data,
@@ -260,12 +291,16 @@ def simualte_periodic_soft_slab(
                         "solid_char_func",
                         "wall_char_func",
                         "vorticity",
-                        "psi",
                         "u_z",
-                        "u_r",
                     ],
-                    [eta1, solid_char_func, wall_char_func, vorticity, psi, u_z, u_r],
-                    grid_size_z,
+                    [
+                        extended_eta1,
+                        extended_solid_char_func,
+                        extended_wall_char_func,
+                        extended_vorticity,
+                        extended_u_z,
+                    ],
+                    domain_z_grid_size * multiple_factor,
                     grid_size_r,
                 )
 
@@ -382,4 +417,8 @@ def simualte_periodic_soft_slab(
 
 
 if __name__ == "__main__":
-    simualte_periodic_soft_slab(grid_size_r=256, Re=10, Er=0.25)
+    simualte_periodic_soft_slab(
+        grid_size_r=256,
+        Re=10,
+        Er=0.25,
+    )
