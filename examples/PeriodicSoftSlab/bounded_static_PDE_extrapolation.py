@@ -1,11 +1,5 @@
 import numpy as np
 import numpy.linalg as la
-import scipy.sparse as spp
-
-from pyaxisymflow.kernels.periodic_boundary_ghost_comm import (
-    gen_periodic_boundary_ghost_comm,
-    gen_periodic_boundary_ghost_comm_eta,
-)
 
 
 class StaticPDEExtrapolation:
