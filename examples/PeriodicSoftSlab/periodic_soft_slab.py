@@ -23,7 +23,7 @@ from pyaxisymflow.kernels.periodic_boundary_ghost_comm import (
     gen_periodic_boundary_ghost_comm,
     gen_periodic_boundary_ghost_comm_eta,
 )
-from pyaxisymflow.kernels.bounded_static_PDE_extrapolation import StaticPDEExtrapolation
+from bounded_static_PDE_extrapolation import StaticPDEExtrapolation
 from pyaxisymflow.elasto_kernels.div_tau import (
     update_vorticity_from_solid_stress_periodic,
 )
@@ -170,6 +170,16 @@ def simualte_periodic_soft_slab(
         multiple_factor = 128
         domain_z_range = max_z - 2 * ghost_size * dx
         domain_z_grid_size = grid_size_z - 2 * ghost_size
+
+        extended_solid_char_func = np.zeros(
+            (grid_size_r, domain_z_grid_size * multiple_factor),
+            dtype=np.float64,
+        )
+        extended_wall_char_func = extended_solid_char_func * 0.0
+        extended_vorticity = extended_solid_char_func * 0.0
+        extended_u_z = extended_solid_char_func * 0.0
+        extended_eta1 = extended_solid_char_func * 0.0
+
         if not os.path.exists("vtk_data"):
             os.system("mkdir vtk_data")
         vtk_image_data, temp_vtk_array, writer = vtk_init(
@@ -255,23 +265,17 @@ def simualte_periodic_soft_slab(
 
             # save vtk
             if save_vtk:
-                extended_solid_char_func = np.tile(
+                extended_solid_char_func[...] = np.tile(
                     solid_char_func[:, ghost_size:-ghost_size], multiple_factor
                 )
-                extended_wall_char_func = np.tile(
+                extended_wall_char_func[...] = np.tile(
                     wall_char_func[:, ghost_size:-ghost_size], multiple_factor
                 )
-                extended_vorticity = np.tile(
+                extended_vorticity[...] = np.tile(
                     vorticity[:, ghost_size:-ghost_size], multiple_factor
                 )
-                extended_u_z = np.tile(u_z[:, ghost_size:-ghost_size], multiple_factor)
-
-                extended_eta1 = np.empty(
-                    (
-                        grid_size_r,
-                        domain_z_grid_size * multiple_factor,
-                    ),
-                    dtype=np.float64,
+                extended_u_z[...] = np.tile(
+                    u_z[:, ghost_size:-ghost_size], multiple_factor
                 )
                 for i in range(multiple_factor):
                     extended_eta1[
