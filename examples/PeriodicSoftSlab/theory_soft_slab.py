@@ -12,18 +12,28 @@ from sympy import (
 from sympy.solvers.solveset import linsolve
 
 
-def theory_axisymmetric_soft_slab_spatial(L_f, L_s, Re, shear_rate, omega, G, V_wall):
+def theory_axisymmetric_soft_slab_spatial(
+    L_f,
+    L_s,
+    shear_rate,
+    omega,
+    G,
+    V_wall,
+    rho_f,
+    nu_f,
+    rho_ratio=1.0,
+    nu_ratio=1.0,
+    **kwargs,
+):
 
     # Theoretical Solution
     y, t1 = symbols("y, t1", real=True)
 
     # define params
-    rho_f = 1.0
-    rho_s = rho_f
+    rho_s = rho_ratio * rho_f
+    nu_s = nu_ratio * nu_f
 
-    nu_f = shear_rate * omega * L_f**2 / Re
     mu_f = nu_f * rho_f
-    nu_s = nu_f
     mu_s = nu_s * rho_s
 
     lam1 = np.sqrt(1j * omega / nu_f)
@@ -64,14 +74,64 @@ def theory_axisymmetric_soft_slab_spatial(L_f, L_s, Re, shear_rate, omega, G, V_
     vel_fl = lambdify([y, t1], vel_f)
     vel_sl = lambdify([y, t1], vel_s)
 
-    res_y = 30
     eps = 1e-20
-    Y = np.linspace(eps, (L_s + L_f), res_y)
-    return Y, vel_sl, vel_fl
+
+    Y = kwargs.pop("resolution", np.linspace(eps, (L_s + L_f), 30)).copy()
+
+    def theory_axisymmetric_soft_slab_temporal(time):
+        vel_comb = (Y < L_s) * np.real(vel_sl(Y, time * np.ones_like(Y))) + (
+            Y >= L_s
+        ) * np.real(vel_fl(Y, time * np.ones_like(Y)))
+        return vel_comb
+
+    return theory_axisymmetric_soft_slab_temporal, Y
 
 
-def theory_axisymmetric_soft_slab_temporal(Y, t, L_s, vel_sl, vel_fl):
-    vel_comb = (Y < L_s) * np.real(vel_sl(Y, t * np.ones_like(Y))) + (
-        Y >= L_s
-    ) * np.real(vel_fl(Y, t * np.ones_like(Y)))
-    return vel_comb
+if __name__ == "__main__":
+    # Input variables
+    Re = 10.0
+    Er = 0.25
+    rho_f = 1.0
+    L = 0.4
+    zeta = 1.0  # L_f / L_s
+    V_wall = 1.0
+    omega = 2 * np.pi
+
+    # Compute relevant variables
+    L_f = L * 0.5 * zeta / (1.0 + zeta)
+    L_s = L * 0.5 - L_f
+    shear_rate = V_wall / omega / (L_s + L_f)
+    nu_f = shear_rate * omega * L_f**2 / Re
+    G = rho_f * nu_f * shear_rate * omega / Er
+
+    # Plotting domain
+    y = np.linspace(1e-20, L_s + L_f, 100)
+    time = np.linspace(0.1, 1, 10)
+
+    theory_axisymmetric_soft_slab_temporal, Y = theory_axisymmetric_soft_slab_spatial(
+        L_f, L_s, shear_rate, omega, G, V_wall, rho_f, nu_f, resolution=y, nu_ratio=0.0
+    )
+
+    import matplotlib.pyplot as plt
+    import matplotlib.colors as colors
+    from periodic_soft_slab_post_processing import soft_slab_plotset
+
+    cmap = soft_slab_plotset()
+    fig, ax = plt.subplots(figsize=(10, 8))
+    sm = plt.cm.ScalarMappable(cmap=cmap, norm=colors.Normalize())
+    sm.set_array([])
+    for t in time:
+        result = theory_axisymmetric_soft_slab_temporal(t)
+        mappable = ax.plot(
+            result / V_wall, y / (L_s + L_f), lw=2, color=cmap((t - 0.1) / 0.9)
+        )
+
+    cbar = fig.colorbar(sm, ax=ax, ticks=[0, 0.5, 1])
+    cbar.ax.set_yticklabels(["0", "0.5", "1.0"])
+    cbar.ax.tick_params(size=0)
+    ax.set_xlim([-1.0, 1.0])
+    ax.set_ylim([0.0, 1.0])
+    ax.set_xticks([-1.0, -0.5, 0, 0.5, 1.0], [-1.0, -0.5, 0, 0.5, 1.0])
+    ax.set_yticks([0, 0.2, 0.4, 0.6, 0.8, 1.0], [0, 0.2, 0.4, 0.6, 0.8, 1.0])
+    fig.savefig("theory_plot.eps", format="eps")
+    fig.show()
