@@ -17,7 +17,7 @@
 # Other commands must follow all #SBATCH directives...
 
 # file to be executed
-PROGNAME="flow_past_sphere_case.py"
+PROGNAME="flow_past_sphere.py"
 
 # print some details
 date

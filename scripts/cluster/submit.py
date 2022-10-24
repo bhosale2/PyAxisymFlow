@@ -109,13 +109,11 @@ def create_submit_file(
 
 
 if __name__ == "__main__":
-    program_name = "run_tapered_arm_and_sphere_with_flow.py"
-    environment_name = "sopht-examples-env"
+    program_name = "flow_past_sphere.py"
+    environment_name = "pyaxisym"
     partition = "compute"
     time = "06:00:00"
     num_threads = 32
-    account = "uic409"
-    mail_user = "atekinal"
 
     create_submit_file(
         program_name=program_name,
@@ -123,6 +121,4 @@ if __name__ == "__main__":
         time=time,
         partition=partition,
         num_threads=num_threads,
-        account=account,
-        mail_user=mail_user,
     )
