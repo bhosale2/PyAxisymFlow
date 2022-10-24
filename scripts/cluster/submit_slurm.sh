@@ -3,10 +3,10 @@
 #SBATCH -J test_job
 #SBATCH -o %N.%j.o         # Name of stdout output file
 #SBATCH -e %N.%j.e         # Name of stderr error file
-#SBATCH -p shared                      # Queue (partition) name
+#SBATCH -p compute                      # Queue (partition) name
 #SBATCH -N 1
-#SBATCH --ntasks-per-node=4
-#SBATCH --cpus-per-task=4
+#SBATCH --ntasks-per-node=1
+#SBATCH --cpus-per-task=32
 #SBATCH --mem=64G
 #SBATCH --export=ALL
 #SBATCH -t 00:10:00                    # Run time (hh:mm:ss)
@@ -27,12 +27,13 @@ echo Number of processes: $SLURM_NTASKS
 
 # load anaconda and activate environment
 module load anaconda3
-source activate pyaxisymflow
-conda env list
+conda activate sopht-examples-env
+which python
 
-# set smp num threads the same as ---cpus-per-task
-SMP_NUM_THREADS=4
+# set smp num threads the same as ---cpus-per-task or --ntasks-per-node
+# see README.md for details
+SMP_NUM_THREADS=32
 export OMP_NUM_THREADS=$SMP_NUM_THREADS
 
 # execute the program
-~/.conda/envs/pyaxisymflow/bin/python -u ${PROGNAME} --num_threads=$SMP_NUM_THREADS
+python ${PROGNAME} --num_threads=$SMP_NUM_THREADS
