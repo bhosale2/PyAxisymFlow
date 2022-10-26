@@ -23,7 +23,7 @@ def solid_sigma(
     eta_2r[0, :] = (-eta_2[2, :] + 4 * eta_2[1, :] - 3 * eta_2[0, :]) / (2 * dx)
 
     sigma_s_12[...] = -G * (eta_1z * eta_1r + eta_2z * eta_2r)
-    sigma_s_11[...] = G * (eta_1r**2 + eta_2r**2 - eta_1z**2 - eta_2z**2) / 2.0
+    sigma_s_11[...] = (0.5 * G) * (eta_1r**2 + eta_2r**2 - eta_1z**2 - eta_2z**2)
     sigma_s_22[...] = -sigma_s_11
 
 
