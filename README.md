@@ -40,7 +40,7 @@ If you would like to participate, please read our [contribution guideline](CONTR
 
 ## Citation
 
-We ask that any publications which use SophT cite as following:
+We ask that any publications which use PyAxisymFlow cite as following:
 
 ```
 @software{yashraj_bhosale_2023_7658925,
