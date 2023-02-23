@@ -49,7 +49,10 @@ We ask that any publications which use PyAxisymFlow cite as following:
                   Songyuan Cui and
                   Fan Kiat Chan and
                   Mattia Gazzola},
-  title        = {PyAxisymFlow},
+  title        = {{PyAxisymFlow: an open-source software for 
+                   resolving flow-structure interaction of 3D
+                   axisymmetric mixed soft/rigid bodies in viscous
+                   flows.}},
   month        = feb,
   year         = 2023,
   publisher    = {Zenodo},
